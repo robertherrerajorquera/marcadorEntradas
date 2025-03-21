@@ -1,14 +1,31 @@
 "use client"
 
-import { useState } from "react"
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from "react-native"
+import { useEffect, useState } from "react"
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from "react-native"
 import { format, subDays, startOfWeek, endOfWeek } from "date-fns"
 import { es } from "date-fns/locale"
 import { Calendar, ChevronLeft, ChevronRight } from "react-native-feather"
+import { marcajesService } from "../../services/api"
+import { useAuth } from "../../contexts/AuthContext"
+import { useSimpleToast } from "@/contexts/SimpleToastContext"
+
+interface MarcajeRecord {
+  id: string
+  type: string
+  timestamp: Date
+  location?: {
+    latitude: number
+    longitude: number
+  }
+}
+
+
 
 // Mock data for demonstration
 const generateMockData = (startDate: Date) => {
-  const records = []
+  const [isLoading, setIsLoading] = useState(false)
+  const records:any = []
+
   const types = ["in", "lunch-out", "lunch-in", "out"]
 
   for (let i = 0; i < 14; i++) {
@@ -20,7 +37,7 @@ const generateMockData = (startDate: Date) => {
     // Create entry for each day
     types.forEach((type, index) => {
       // Base times for each check type
-      let hour
+      let hour = 8;// base en vez de 0
       switch (type) {
         case "in":
           hour = 8
@@ -51,13 +68,62 @@ const generateMockData = (startDate: Date) => {
     })
   }
 
-  return records.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+  return records.sort((a:any, b:any) => b.timestamp.getTime() - a.timestamp.getTime())
 }
 
 const EmployeeHistoryScreen = () => {
+  const { user } = useAuth()
+  const { showToast } = useSimpleToast()
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [records, setRecords] = useState(generateMockData(new Date()))
+ // const [records, setRecords] = useState(generateMockData(new Date()))
   const [viewMode, setViewMode] = useState<"day" | "week" | "month">("week")
+  
+  const [records, setRecords] = useState<MarcajeRecord[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+
+  
+useEffect(() => {
+  if (!user?.id) return
+
+  const loadMarcaje = async () => {
+    setIsLoading(true)
+    try {
+      console.log("Cargando historial de marcajes para el usuario:", user.id)
+      showToast("Cargando historial...", "info")
+
+      // Calcular fechas para la consulta
+      const today = new Date()
+      const oneMonthAgo = new Date()
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+
+      const formattedStartDate = format(oneMonthAgo, "yyyy-MM-dd")
+      const formattedEndDate = format(today, "yyyy-MM-dd")
+
+      // Llamar a la API PHP
+      const response = await marcajesService.obtenerHistorial(user.id, formattedStartDate, formattedEndDate)
+
+      if (response.error) {
+        console.error("Error al cargar historial (API):", response.error)
+        showToast(response.message || "Error al cargar historial", "danger")
+        return
+      }
+
+      console.log("Historial cargado exitosamente de la API")
+
+      // En una app real, procesarías los datos de la API
+      // Por ahora, usamos datos mock
+      setRecords(generateMockData(new Date()))
+      showToast("Historial cargado correctamente", "success")
+    } catch (error) {
+      console.error("Error al cargar historial:", error)
+      showToast("No se pudo cargar el historial de marcajes", "danger")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  loadMarcaje()
+}, [user, showToast])
 
   const getCheckTypeText = (type: string): string => {
     switch (type) {
@@ -186,7 +252,12 @@ const EmployeeHistoryScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4C51BF" />
+          <Text style={styles.loadingText}>Cargando registros...</Text>
+        </View>
+      ) : (
       <FlatList
         data={filteredRecords()}
         keyExtractor={(item) => item.id}
@@ -200,7 +271,8 @@ const EmployeeHistoryScreen = () => {
             <View style={styles.recordDetails}>
               <Text style={styles.recordTime}>{format(item.timestamp, "HH:mm")}</Text>
               <Text style={styles.recordLocation}>
-                Lat: {item.location.latitude.toFixed(4)}, Lon: {item.location.longitude.toFixed(4)}
+                Lat: {item.location?.latitude.toFixed(4) || "N/A"}, Lon:{" "}
+                {item.location?.longitude.toFixed(4) || "N/A"}
               </Text>
             </View>
           </View>
@@ -211,6 +283,7 @@ const EmployeeHistoryScreen = () => {
           </View>
         }
       />
+       )}
     </View>
   )
 }
@@ -267,6 +340,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#4A5568",
     fontWeight: "500",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: 10,
+    color: "#4A5568",
+    fontSize: 16,
   },
   recordItem: {
     backgroundColor: "#FFFFFF",

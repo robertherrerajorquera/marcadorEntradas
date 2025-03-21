@@ -12,7 +12,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#4C51BF"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
@@ -21,7 +23,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4C51BF"
       },
-      "permissions": ["ACCESS_FINE_LOCATION", "CAMERA"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.robertherrera.marcadorEntradas"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -33,7 +41,11 @@
           "locationAlwaysAndWhenInUsePermission": "Permitir a Marcador de Entradas acceder a tu ubicación."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "eed03eb2-8be7-4a89-b19e-3ddd424ba966"
+      }
+    }
   }
 }
-

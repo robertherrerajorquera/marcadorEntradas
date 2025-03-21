@@ -1,15 +1,28 @@
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from "react-native"
+"use client"
+
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Platform } from "react-native"
 import { User, LogOut, Settings, Bell, Shield } from "react-native-feather"
 import { useAuth } from "../../contexts/AuthContext"
+import { useSimpleToast } from "../../contexts/SimpleToastContext"
 
 const EmployeeProfileScreen = () => {
   const { user, logout } = useAuth()
+  const { showToast } = useSimpleToast()
 
   const handleLogout = async () => {
     try {
+      // Show confirmation dialog on web
+      if (Platform.OS === "web") {
+        if (!window.confirm("¿Estás seguro que deseas cerrar sesión?")) {
+          return
+        }
+      }
+
+      showToast("Cerrando sesión...", "info")
       await logout()
     } catch (error) {
-      Alert.alert("Error", "No se pudo cerrar sesión")
+      console.error("Error al cerrar sesión:", error)
+      showToast("Error al cerrar sesión", "danger")
     }
   }
 

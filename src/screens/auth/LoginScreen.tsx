@@ -10,11 +10,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
+  ActivityIndicator,
 } from "react-native"
 import { TextInput } from "react-native-gesture-handler"
 import { useAuth } from "../../contexts/AuthContext"
 import { useNavigation } from "@react-navigation/native"
+import { authService } from "../../services/api"
+import { useSimpleToast } from "../../contexts/SimpleToastContext"
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("")
@@ -22,18 +24,42 @@ const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false)
   const { login } = useAuth()
   const navigation = useNavigation()
+  const { showToast } = useSimpleToast()
 
   const handleLogin = async () => {
+    // Field validation
     if (!email || !password) {
-      Alert.alert("Error", "Por favor ingresa tu email y contraseña")
+      showToast("Por favor ingresa tu email y contraseña", "danger")
       return
     }
 
     setIsLoading(true)
     try {
-      await login(email, password)
+      console.log("Iniciando login con:", { email })
+
+      // First try to login with the PHP API
+      const response = await authService.login(email, password)
+
+      if (response.error || !response.user) {
+        console.error("Error en el login (API):", response.error || "Usuario no encontrado")
+        showToast(response.message || "Credenciales inválidas", "danger")
+        setIsLoading(false)
+        return
+      }
+
+      console.log("Login exitoso en la API, actualizando estado local")
+
+      // If API login was successful, update local state
+      // The navigation will be handled automatically by RootNavigator
+      // when the auth state changes
+      const success = await login(email, password)
+
+      if (!success) {
+        showToast("Error al iniciar sesión", "danger")
+      }
     } catch (error) {
-      Alert.alert("Error", "Credenciales inválidas")
+      console.error("Error en el login:", error)
+      showToast("Error al iniciar sesión. Verifica tus credenciales.", "danger")
     } finally {
       setIsLoading(false)
     }
@@ -56,6 +82,7 @@ const LoginScreen = () => {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            editable={!isLoading}
           />
 
           <Text style={styles.label}>Contraseña</Text>
@@ -65,13 +92,29 @@ const LoginScreen = () => {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            editable={!isLoading}
           />
 
-          <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={isLoading}>
-            <Text style={styles.buttonText}>{isLoading ? "Iniciando sesión..." : "Iniciar Sesión"}</Text>
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#FFFFFF" />
+                <Text style={styles.buttonText}>Iniciando sesión...</Text>
+              </View>
+            ) : (
+              <Text style={styles.buttonText}>Iniciar Sesión</Text>
+            )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate("Register" as never)} style={styles.registerLink}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Register" as never)}
+            style={styles.registerLink}
+            disabled={isLoading}
+          >
             <Text style={styles.registerText}>¿No tienes una cuenta? Regístrate</Text>
           </TouchableOpacity>
         </View>
@@ -127,10 +170,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
   },
+  buttonDisabled: {
+    backgroundColor: "#A0AEC0",
+  },
   buttonText: {
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
   },
   registerLink: {
     marginTop: 20,

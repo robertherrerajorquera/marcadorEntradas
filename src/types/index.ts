@@ -1,4 +1,6 @@
-export type UserRole = "employee" | "employer"
+export type UserRole = "employee" | "employer";
+
+
 
 export interface User {
   id: string
@@ -6,6 +8,8 @@ export interface User {
   email: string
   role: UserRole
   employerId?: string // For employees, reference to their employer
+  empresaId:number;
+  status_employee?:string;
 }
 
 export type CheckType = "in" | "out" | "lunch-out" | "lunch-in"

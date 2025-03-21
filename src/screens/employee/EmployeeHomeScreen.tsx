@@ -1,12 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
 import { Clock, MapPin, Camera } from "react-native-feather"
 import * as Location from "expo-location"
 import { useAuth } from "../../contexts/AuthContext"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
+import { marcajesService } from "../../services/api"
+import { useSimpleToast } from "../../contexts/SimpleToastContext"
+// Añadir importación de AsyncStorage
+import AsyncStorage from "@react-native-async-storage/async-storage"
 
 type CheckType = "in" | "out" | "lunch-out" | "lunch-in"
 
@@ -23,10 +27,14 @@ interface CheckRecord {
 
 const EmployeeHomeScreen = () => {
   const { user } = useAuth()
+  const { showToast } = useSimpleToast()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [lastCheck, setLastCheck] = useState<CheckRecord | null>(null)
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [processingCheckType, setProcessingCheckType] = useState<CheckType | null>(null)
 
+  // Modificar el useEffect para cargar el último registro al iniciar
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date())
@@ -36,41 +44,127 @@ const EmployeeHomeScreen = () => {
     ;(async () => {
       const { status } = await Location.requestForegroundPermissionsAsync()
       setLocationPermission(status === "granted")
+
+      if (status !== "granted") {
+        showToast("Se requiere permiso de ubicación para registrar asistencia", "danger")
+      }
+
+      // Cargar el último registro guardado
+      try {
+        const savedCheck = await AsyncStorage.getItem("lastCheck")
+        if (savedCheck) {
+          const parsedCheck = JSON.parse(savedCheck)
+          // Convertir la cadena de timestamp a objeto Date
+          parsedCheck.timestamp = new Date(parsedCheck.timestamp)
+          setLastCheck(parsedCheck)
+          console.log("Último registro cargado:", parsedCheck)
+        }
+      } catch (error) {
+        console.error("Error al cargar el último registro:", error)
+      }
     })()
 
     return () => clearInterval(timer)
-  }, [])
+  }, [showToast])
 
+  // Modificar la función handleCheck para mejorar el manejo de errores y la retroalimentación al usuario
   const handleCheck = async (type: CheckType) => {
-    if (!locationPermission) {
-      Alert.alert(
-        "Permiso de ubicación requerido",
-        "Necesitamos acceder a tu ubicación para registrar tu entrada/salida",
-      )
+    if (!user?.id) {
+      showToast("Debes iniciar sesión para registrar asistencia", "danger")
       return
     }
 
-    try {
-      // Get current location
-      const location = await Location.getCurrentPositionAsync({})
+    if (!locationPermission) {
+      showToast("Permiso de ubicación requerido para registrar asistencia", "danger")
 
-      // In a real app, you would send this data to your backend
+      // Intentar solicitar permisos nuevamente
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync()
+        if (status !== "granted") {
+          return
+        }
+        setLocationPermission(true)
+      } catch (error) {
+        console.error("Error al solicitar permisos de ubicación:", error)
+        return
+      }
+    }
+
+    setIsLoading(true)
+    setProcessingCheckType(type)
+
+    try {
+      console.log(`Iniciando marcación de ${getCheckTypeText(type)} para usuario ID: ${user.id}`)
+      showToast(`Registrando ${getCheckTypeText(type)}...`, "info")
+
+      // Get current location
+      let location
+      try {
+        location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        })
+        console.log("Ubicación obtenida:", location.coords)
+      } catch (locError) {
+        console.error("Error al obtener ubicación:", locError)
+        showToast("No se pudo obtener tu ubicación. Verifica los permisos.", "danger")
+        setIsLoading(false)
+        setProcessingCheckType(null)
+        return
+      }
+
+      // Enviar marcación a la API PHP
+      console.log("Enviando datos a la API:", {
+        userId: user.id,
+        type,
+        lat: location.coords.latitude,
+        lng: location.coords.longitude,
+      })
+
+      const response = await marcajesService.crearMarcaje(
+        user.id,
+        type,
+        location.coords.latitude,
+        location.coords.longitude,
+      )
+
+      console.log("Respuesta completa de la API:", response)
+
+      if (response.error) {
+        console.error("Error al registrar asistencia (API):", response.error)
+        showToast(response.message || "Error al registrar asistencia", "danger")
+        return
+      }
+
+      console.log("Marcación registrada exitosamente en la API")
+
+      // Crear registro local con el ID devuelto por la API (o generar uno si no hay)
       const newCheck: CheckRecord = {
-        id: Date.now().toString(),
+        id: response.id || Date.now().toString(),
         type,
         timestamp: new Date(),
         location: {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         },
-        photoTaken: false, // In a real app, you would implement photo capture
+        photoTaken: false, // En una app real, implementarías la captura de fotos
       }
 
       setLastCheck(newCheck)
+      showToast(`Has registrado tu ${getCheckTypeText(type)} correctamente`, "success")
 
-      Alert.alert("Registro exitoso", `Has registrado tu ${getCheckTypeText(type)} correctamente.`)
+      // Guardar el último registro en AsyncStorage para persistencia
+      try {
+        await AsyncStorage.setItem("lastCheck", JSON.stringify(newCheck))
+        console.log("Último registro guardado en AsyncStorage")
+      } catch (storageError) {
+        console.error("Error al guardar en AsyncStorage:", storageError)
+      }
     } catch (error) {
-      Alert.alert("Error", "No se pudo registrar tu entrada/salida")
+      console.error("Error al registrar asistencia:", error)
+      showToast("No se pudo registrar tu entrada/salida. Intenta nuevamente.", "danger")
+    } finally {
+      setIsLoading(false)
+      setProcessingCheckType(null)
     }
   }
 
@@ -87,6 +181,11 @@ const EmployeeHomeScreen = () => {
     }
   }
 
+  // Función para verificar si un botón está en proceso
+  const isProcessing = (type: CheckType): boolean => {
+    return isLoading && processingCheckType === type
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -98,24 +197,44 @@ const EmployeeHomeScreen = () => {
       <View style={styles.checkButtonsContainer}>
         <Text style={styles.sectionTitle}>Registrar:</Text>
 
-        <TouchableOpacity style={styles.checkButton} onPress={() => handleCheck("in")}>
+        <TouchableOpacity
+          style={[styles.checkButton, isProcessing("in") && styles.processingButton]}
+          onPress={() => handleCheck("in")}
+          disabled={isLoading}
+        >
           <Clock stroke="#FFFFFF" width={24} height={24} />
-          <Text style={styles.checkButtonText}>Entrada</Text>
+          <Text style={styles.checkButtonText}>{isProcessing("in") ? "Procesando..." : "Entrada"}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.checkButton} onPress={() => handleCheck("lunch-out")}>
+        <TouchableOpacity
+          style={[styles.checkButton, isProcessing("lunch-out") && styles.processingButton]}
+          onPress={() => handleCheck("lunch-out")}
+          disabled={isLoading}
+        >
           <Clock stroke="#FFFFFF" width={24} height={24} />
-          <Text style={styles.checkButtonText}>Salida a Almorzar</Text>
+          <Text style={styles.checkButtonText}>
+            {isProcessing("lunch-out") ? "Procesando..." : "Salida a Almorzar"}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.checkButton} onPress={() => handleCheck("lunch-in")}>
+        <TouchableOpacity
+          style={[styles.checkButton, isProcessing("lunch-in") && styles.processingButton]}
+          onPress={() => handleCheck("lunch-in")}
+          disabled={isLoading}
+        >
           <Clock stroke="#FFFFFF" width={24} height={24} />
-          <Text style={styles.checkButtonText}>Regreso de Almuerzo</Text>
+          <Text style={styles.checkButtonText}>
+            {isProcessing("lunch-in") ? "Procesando..." : "Regreso de Almuerzo"}
+          </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.checkButton} onPress={() => handleCheck("out")}>
+        <TouchableOpacity
+          style={[styles.checkButton, isProcessing("out") && styles.processingButton]}
+          onPress={() => handleCheck("out")}
+          disabled={isLoading}
+        >
           <Clock stroke="#FFFFFF" width={24} height={24} />
-          <Text style={styles.checkButtonText}>Salida</Text>
+          <Text style={styles.checkButtonText}>{isProcessing("out") ? "Procesando..." : "Salida"}</Text>
         </TouchableOpacity>
       </View>
 
@@ -129,7 +248,10 @@ const EmployeeHomeScreen = () => {
           <View style={styles.lastCheckDetails}>
             <View style={styles.detailItem}>
               <MapPin stroke="#4C51BF" width={16} height={16} />
-              <Text style={styles.detailText}>Ubicación registrada</Text>
+              <Text style={styles.detailText}>
+                Ubicación registrada: Lat {lastCheck.location?.latitude.toFixed(4)}, Lon{" "}
+                {lastCheck.location?.longitude.toFixed(4)}
+              </Text>
             </View>
 
             <View style={styles.detailItem}>
@@ -185,6 +307,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 10,
+  },
+  processingButton: {
+    backgroundColor: "#6B7280",
   },
   checkButtonText: {
     color: "#FFFFFF",

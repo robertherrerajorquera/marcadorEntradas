@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import {
   View,
   Text,
@@ -10,44 +10,87 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
 } from "react-native"
 import { TextInput } from "react-native-gesture-handler"
 import { useAuth } from "../../contexts/AuthContext"
 import { useNavigation } from "@react-navigation/native"
 import { RadioButton } from "react-native-paper"
+import type { UserRole } from "../../types"
+import { authService } from "../../services/api"
+import { useSimpleToast } from "../../contexts/SimpleToastContext"
 
 const RegisterScreen = () => {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [role, setRole] = useState<"employee" | "employer">("employee")
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [status_employee, setstatus_employee] = useState("");
+  // const [empresa, setEmpresa] = useState("");
+  const [empresaId, setEmpresaId] = useState(1);
+  const [posicion, setPosicion] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("employer") // Por defecto, empleado (1)
   const [isLoading, setIsLoading] = useState(false)
   const { register } = useAuth()
   const navigation = useNavigation()
+  const { showToast } = useSimpleToast()
 
   const handleRegister = async () => {
+    // Validación de campos
     if (!name || !email || !password || !confirmPassword) {
-      Alert.alert("Error", "Por favor completa todos los campos")
+      showToast("Por favor completa todos los campos", "danger")
       return
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Las contraseñas no coinciden")
+      showToast("Las contraseñas no coinciden", "danger")
+      return
+    }
+
+    // Validación básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      showToast("Por favor ingresa un email válido", "danger")
       return
     }
 
     setIsLoading(true)
     try {
-      await register(name, email, password, role)
+      console.log("Iniciando registro de usuario:", { name, email, role })
+      showToast("Procesando registro...", "info")
+
+      // Primero intentamos registrar en la API PHP
+      const response = await authService.register(
+        name, // nombre
+        email, // email
+        password, // password
+        role, // role (0=empleador, 1=empleado)
+        empresaId, // empresa_id (solo para empleados)
+        posicion, // position
+        "Sin asignar", // department,
+        status_employee
+      )
+
+      if (response.error) {
+        console.error("Error en el registro (API):", response.error)
+        showToast(response.message || "Error en el registro", "danger")
+        return
+      }
+
+      console.log("Registro exitoso en la API, actualizando estado local")
+
+      // Si el registro en la API fue exitoso, actualizamos el estado local
+      await register(name, email, password, role, empresaId, status_employee)
+      showToast("Registro exitoso. ¡Bienvenido!", "success")
     } catch (error) {
-      Alert.alert("Error", "No se pudo completar el registro")
+      console.error("Error en el registro:", error)
+      showToast("No se pudo completar el registro. Intenta nuevamente.", "danger")
     } finally {
       setIsLoading(false)
     }
   }
-
+  useEffect(() => {
+    console.log("data del rol cambio, ahora es", role)
+  }, [role])
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -58,7 +101,13 @@ const RegisterScreen = () => {
 
         <View style={styles.formContainer}>
           <Text style={styles.label}>Nombre Completo</Text>
-          <TextInput style={styles.input} placeholder="Ingresa tu nombre" value={name} onChangeText={setName} />
+          <TextInput
+            style={styles.input}
+            placeholder="Ingresa tu nombre"
+            value={name}
+            onChangeText={setName}
+            autoCapitalize="words"
+          />
 
           <Text style={styles.label}>Email</Text>
           <TextInput
@@ -69,6 +118,26 @@ const RegisterScreen = () => {
             keyboardType="email-address"
             autoCapitalize="none"
           />
+
+          {/* <Text style={styles.label}>Empresa</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Empresa"
+            value={empresa}
+            onChangeText={setEmpresa}
+            autoCapitalize="words"
+          /> */}
+
+          
+          <Text style={styles.label}>Posicion</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Posicion"
+            value={posicion}
+            onChangeText={setPosicion}
+            autoCapitalize="words"
+          />
+
 
           <Text style={styles.label}>Contraseña</Text>
           <TextInput
@@ -92,25 +161,29 @@ const RegisterScreen = () => {
           <View style={styles.radioContainer}>
             <View style={styles.radioOption}>
               <RadioButton
-                value="employee"
-                status={role === "employee" ? "checked" : "unchecked"}
-                onPress={() => setRole("employee")}
-                color="#4C51BF"
-              />
-              <Text style={styles.radioLabel}>Empleado</Text>
-            </View>
-            <View style={styles.radioOption}>
-              <RadioButton
-                value="employer"
+                value="1"
                 status={role === "employer" ? "checked" : "unchecked"}
                 onPress={() => setRole("employer")}
                 color="#4C51BF"
               />
               <Text style={styles.radioLabel}>Empleador</Text>
             </View>
+            <View style={styles.radioOption}>
+              <RadioButton
+                value="0"
+                status={role === "employee" ? "checked" : "unchecked"}
+                onPress={() => setRole("employee")}
+                color="#4C51BF"
+              />
+              <Text style={styles.radioLabel}>Empleado</Text>
+            </View>
           </View>
 
-          <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={isLoading}>
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleRegister}
+            disabled={isLoading}
+          >
             <Text style={styles.buttonText}>{isLoading ? "Registrando..." : "Registrarse"}</Text>
           </TouchableOpacity>
 
@@ -182,6 +255,9 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
     marginTop: 10,
+  },
+  buttonDisabled: {
+    backgroundColor: "#A0AEC0",
   },
   buttonText: {
     color: "#FFFFFF",
