@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { Users, Clock, ChevronRight } from "react-native-feather"
 import { useNavigation } from "@react-navigation/native"
+import { useSession } from "../../contexts/SessionContext"
 
 // Mock data for demonstration
 const generateMockEmployees = () => {
@@ -33,6 +34,12 @@ const EmployerHomeScreen = () => {
   const [employees] = useState(generateMockEmployees())
   const [stats] = useState(generateMockStats())
   const navigation = useNavigation()
+  const { resetInactivityTimer } = useSession()
+
+  // Reiniciar el temporizador de inactividad cuando se monta el componente
+  useEffect(() => {
+    resetInactivityTimer()
+  }, [resetInactivityTimer])
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -65,7 +72,10 @@ const EmployerHomeScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      onScroll={() => resetInactivityTimer()} // Reiniciar temporizador al hacer scroll
+    >
       <View style={styles.header}>
         <Text style={styles.title}>Panel de Control</Text>
         <Text style={styles.date}>{format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}</Text>
@@ -100,7 +110,13 @@ const EmployerHomeScreen = () => {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Empleados Hoy</Text>
-          <TouchableOpacity style={styles.seeAllButton} onPress={() => navigation.navigate("Employees" as never)}>
+          <TouchableOpacity
+            style={styles.seeAllButton}
+            onPress={() => {
+              resetInactivityTimer()
+              navigation.navigate("Employees" as never)
+            }}
+          >
             <Text style={styles.seeAllText}>Ver todos</Text>
             <ChevronRight stroke="#4C51BF" width={16} height={16} />
           </TouchableOpacity>
@@ -126,7 +142,7 @@ const EmployerHomeScreen = () => {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Resumen Semanal</Text>
-          <TouchableOpacity style={styles.seeAllButton}>
+          <TouchableOpacity style={styles.seeAllButton} onPress={() => resetInactivityTimer()}>
             <Text style={styles.seeAllText}>Ver detalles</Text>
             <ChevronRight stroke="#4C51BF" width={16} height={16} />
           </TouchableOpacity>

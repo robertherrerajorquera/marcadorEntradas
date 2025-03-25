@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from "react-native"
 import { Clock, MapPin, Camera } from "react-native-feather"
 import * as Location from "expo-location"
 import { useAuth } from "../../contexts/AuthContext"
@@ -9,7 +9,7 @@ import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { marcajesService } from "../../services/api"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
-// Añadir importación de AsyncStorage
+import { useSession } from "../../contexts/SessionContext"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
 type CheckType = "in" | "out" | "lunch-out" | "lunch-in"
@@ -28,6 +28,7 @@ interface CheckRecord {
 const EmployeeHomeScreen = () => {
   const { user } = useAuth()
   const { showToast } = useSimpleToast()
+  const { resetInactivityTimer, showAfterActionModal } = useSession()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [lastCheck, setLastCheck] = useState<CheckRecord | null>(null)
   const [locationPermission, setLocationPermission] = useState<boolean | null>(null)
@@ -46,7 +47,7 @@ const EmployeeHomeScreen = () => {
       setLocationPermission(status === "granted")
 
       if (status !== "granted") {
-        showToast("Se requiere permiso de ubicación para registrar asistencia", "danger")
+        showToast("Se requiere permiso de ubicación para registrar asistencia", "error")
       }
 
       // Cargar el último registro guardado
@@ -64,18 +65,24 @@ const EmployeeHomeScreen = () => {
       }
     })()
 
+    // Reiniciar el temporizador de inactividad cuando se monta el componente
+    resetInactivityTimer()
+
     return () => clearInterval(timer)
-  }, [showToast])
+  }, [showToast, resetInactivityTimer])
 
   // Modificar la función handleCheck para mejorar el manejo de errores y la retroalimentación al usuario
   const handleCheck = async (type: CheckType) => {
+    // Reiniciar el temporizador de inactividad al realizar una acción
+    resetInactivityTimer()
+
     if (!user?.id) {
-      showToast("Debes iniciar sesión para registrar asistencia", "danger")
+      showToast("Debes iniciar sesión para registrar asistencia", "error")
       return
     }
 
     if (!locationPermission) {
-      showToast("Permiso de ubicación requerido para registrar asistencia", "danger")
+      showToast("Permiso de ubicación requerido para registrar asistencia", "error")
 
       // Intentar solicitar permisos nuevamente
       try {
@@ -106,21 +113,39 @@ const EmployeeHomeScreen = () => {
         console.log("Ubicación obtenida:", location.coords)
       } catch (locError) {
         console.error("Error al obtener ubicación:", locError)
-        showToast("No se pudo obtener tu ubicación. Verifica los permisos.", "danger")
+        showToast("No se pudo obtener tu ubicación. Verifica los permisos.", "error")
         setIsLoading(false)
         setProcessingCheckType(null)
         return
       }
 
+      // Mostrar alerta con los datos que se van a enviar (solo para depuración)
+      if (Platform.OS === "web") {
+        console.log("Datos a enviar:", {
+          usuario_id: user.id,
+          tipo: type,
+          latitud: location.coords.latitude,
+          longitud: location.coords.longitude,
+        })
+      } else {
+        Alert.alert(
+          "Datos a enviar",
+          `usuario_id: ${user.id}
+tipo: ${type}
+latitud: ${location.coords.latitude}
+longitud: ${location.coords.longitude}`,
+        )
+      }
+
       // Enviar marcación a la API PHP
       console.log("Enviando datos a la API:", {
-        userId: user.id,
-        type,
-        lat: location.coords.latitude,
-        lng: location.coords.longitude,
+        usuario_id: user.id,
+        tipo: type,
+        latitud: location.coords.latitude,
+        longitud: location.coords.longitude,
       })
 
-      const response = await marcajesService.crearMarcaje(
+      const response = await marcajesService.crearMarcajes(
         user.id,
         type,
         location.coords.latitude,
@@ -131,7 +156,7 @@ const EmployeeHomeScreen = () => {
 
       if (response.error) {
         console.error("Error al registrar asistencia (API):", response.error)
-        showToast(response.message || "Error al registrar asistencia", "danger")
+        showToast(response.message || "Error al registrar asistencia", "error")
         return
       }
 
@@ -159,9 +184,12 @@ const EmployeeHomeScreen = () => {
       } catch (storageError) {
         console.error("Error al guardar en AsyncStorage:", storageError)
       }
+
+      // Mostrar el modal después de la acción
+      showAfterActionModal()
     } catch (error) {
       console.error("Error al registrar asistencia:", error)
-      showToast("No se pudo registrar tu entrada/salida. Intenta nuevamente.", "danger")
+      showToast("No se pudo registrar tu entrada/salida. Intenta nuevamente.", "error")
     } finally {
       setIsLoading(false)
       setProcessingCheckType(null)

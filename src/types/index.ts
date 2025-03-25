@@ -10,6 +10,7 @@ export interface User {
   employerId?: string // For employees, reference to their employer
   empresaId:number;
   status_employee?:string;
+  rut:string;
 }
 
 export type CheckType = "in" | "out" | "lunch-out" | "lunch-in"

@@ -52,7 +52,7 @@ const EmployeeDetailScreen = () => {
 
         if (response.error) {
           console.error("Error loading attendance records:", response.error)
-          showToast("No se pudieron cargar las marcaciones", "danger")
+          showToast("No se pudieron cargar las marcaciones", "error")
 
           // Use mock data on error
           const mockMarcaciones = generateMockMarcaciones(employee.id)
@@ -97,7 +97,7 @@ const EmployeeDetailScreen = () => {
         }
       } catch (error) {
         console.error("Error loading attendance records:", error)
-        showToast("Error al cargar datos del empleado", "danger")
+        showToast("Error al cargar datos del empleado", "error")
 
         // Use mock data on error
         const mockMarcaciones = generateMockMarcaciones(employee.id)
@@ -219,7 +219,7 @@ const EmployeeDetailScreen = () => {
 
       Linking.openURL(url).catch((err: any) => {
         console.error("Error opening map:", err)
-        showToast("No se pudo abrir el mapa", "danger")
+        showToast("No se pudo abrir el mapa", "error")
       })
     }
   }
@@ -246,7 +246,7 @@ const EmployeeDetailScreen = () => {
 
           if (!response.ok) {
             const errorText = await response.text()
-            showToast(`Error: ${errorText || "No se pudo descargar el archivo"}`, "danger")
+            showToast(`Error: ${errorText || "No se pudo descargar el archivo"}`, "error")
             return
           }
 
@@ -263,7 +263,7 @@ const EmployeeDetailScreen = () => {
           showToast("Archivo descargado correctamente", "success")
         } catch (error) {
           console.error("Error downloading file:", error)
-          showToast("Error al descargar el archivo", "danger")
+          showToast("Error al descargar el archivo", "error")
         }
       } else {
         // Native implementation using Linking
@@ -274,12 +274,12 @@ const EmployeeDetailScreen = () => {
           await Linking.openURL(excelUrl)
           showToast("Archivo abierto correctamente", "success")
         } else {
-          showToast("No se puede abrir el enlace para descargar el archivo", "danger")
+          showToast("No se puede abrir el enlace para descargar el archivo", "error")
         }
       }
     } catch (error) {
       console.error("Error exporting to Excel:", error)
-      showToast("No se pudo generar el archivo Excel", "danger")
+      showToast("No se pudo generar el archivo Excel", "error")
     }
   }
 

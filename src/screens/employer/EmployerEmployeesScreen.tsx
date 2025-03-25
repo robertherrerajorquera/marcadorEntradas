@@ -121,7 +121,7 @@ const EmployerEmployeesScreen = () => {
         }
       } catch (error) {
         console.error("Error al cargar empleados:", error)
-        showToast("No se pudieron cargar los empleados", "danger")
+        showToast("No se pudieron cargar los empleados", "error")
 
         // Fallback to mock data on error
         const mockData = generateMockEmployees()
@@ -199,7 +199,7 @@ const EmployerEmployeesScreen = () => {
 
           if (!response.ok) {
             const errorText = await response.text()
-            showToast(`Error: ${errorText || "No se pudo descargar el archivo"}`, "danger")
+            showToast(`Error: ${errorText || "No se pudo descargar el archivo"}`, "error")
             return
           }
 
@@ -216,7 +216,7 @@ const EmployerEmployeesScreen = () => {
           showToast("Archivo descargado correctamente", "success")
         } catch (error) {
           console.error("Error downloading file:", error)
-          showToast("Error al descargar el archivo", "danger")
+          showToast("Error al descargar el archivo", "error")
         }
       } else {
         // Native implementation using Linking
@@ -227,12 +227,12 @@ const EmployerEmployeesScreen = () => {
           await Linking.openURL(url)
           showToast("Archivo abierto correctamente", "success")
         } else {
-          showToast("No se puede abrir el enlace para descargar el archivo", "danger")
+          showToast("No se puede abrir el enlace para descargar el archivo", "error")
         }
       }
     } catch (error) {
       console.error("Error al exportar:", error)
-      showToast("No se pudo generar el archivo Excel", "danger")
+      showToast("No se pudo generar el archivo Excel", "error")
     }
   }
 
@@ -253,7 +253,7 @@ const EmployerEmployeesScreen = () => {
       await downloadExcel(excelUrl, `historial_${employee.nombre}.xlsx`)
     } catch (error) {
       console.error("Error al exportar a Excel:", error)
-      showToast("No se pudo generar el archivo Excel", "danger")
+      showToast("No se pudo generar el archivo Excel", "error")
     }
   }
 
@@ -300,7 +300,7 @@ const EmployerEmployeesScreen = () => {
         await downloadExcel(excelUrl, "historial_todos_empleados.xlsx")
       } catch (error) {
         console.error("Error al exportar a Excel:", error)
-        showToast("No se pudo generar el archivo Excel", "danger")
+        showToast("No se pudo generar el archivo Excel", "error")
       }
     }
   }, [user, API_URL, showToast])

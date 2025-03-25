@@ -1,7 +1,17 @@
 // Servicio centralizado para llamadas a la API PHP
 // Cambia esta URL para que apunte a tu servidor local
-const API_URL = "http://localhost/backendMarcadorEntradas/api"
-//localhost
+import { Platform } from "react-native"
+
+// Get the appropriate API URL based on platform
+const API_URL =
+  Platform.OS === "android"
+    ? "http://192.168.163.21/backendMarcadorEntradas/api"
+    : Platform.OS === "ios"
+      ? "http://192.168.163.21/backendMarcadorEntradas/api"
+      : "/backendMarcadorEntradas/api"
+
+console.log(`Using API URL for ${Platform.OS}:`, API_URL)
+
 // Interfaces para las respuestas de la API
 interface ApiResponse {
   message: string
@@ -17,12 +27,12 @@ interface LoginResponse extends ApiResponse {
     empresa_id?: string
     position?: string
     department?: string
-    status_employee: string
+    rut?: string
   }
   token?: string
 }
 
-interface MarcajesResponse extends ApiResponse {
+interface MarcacionResponse extends ApiResponse {
   id?: string
   timestamp?: string
 }
@@ -70,10 +80,10 @@ export const authService = {
     email: string,
     password: string,
     role: string, // Cambiado a string
-    empresa_id?: number,
+    empresa_id?: string,
     position?: string,
     department?: string,
-    status_employee?:string,
+    rut?: string, // Nuevo campo RUT
   ): Promise<ApiResponse> {
     try {
       console.log("Enviando solicitud de registro a la API:", {
@@ -83,7 +93,7 @@ export const authService = {
         empresa_id,
         position,
         department,
-        status_employee
+        rut, // Incluir RUT en el log
       })
 
       // Verificar que la URL sea correcta
@@ -98,7 +108,7 @@ export const authService = {
         empresa_id,
         position,
         department,
-        status_employee
+        rut, // Incluir RUT en la solicitud
       }
 
       console.log("Cuerpo de la solicitud:", JSON.stringify(requestBody))
@@ -124,10 +134,10 @@ export const authService = {
     }
   },
 
-  // Login de usuario
+  // Login de usuario con email
   async login(email: string, password: string): Promise<LoginResponse> {
     try {
-      console.log("Enviando solicitud de login a la API:", { email })
+      console.log("Enviando solicitud de login con email a la API:", { email })
 
       const url = `${API_URL}/usuarios/login.php`
       console.log("URL de login:", url)
@@ -152,18 +162,79 @@ export const authService = {
       return handleFetchError(error)
     }
   },
+
+  // Login de usuario con RUT
+  async loginWithRut(rut: string, password: string, isQrLogin = false): Promise<LoginResponse> {
+    try {
+      console.log("Enviando solicitud de login con RUT a la API:", { rut, isQrLogin })
+
+      // Si es login por QR, usamos un endpoint diferente que no requiere contraseña
+      const endpoint = isQrLogin ? "login_rut_qr.php" : "login_rut.php"
+      const url = `${API_URL}/usuarios/${endpoint}`
+      console.log("URL de login con RUT:", url)
+
+      const requestBody = isQrLogin
+        ? { rut } // Solo enviamos el RUT para login por QR
+        : { rut, password } // Enviamos RUT y contraseña para login normal
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      console.log("Código de estado HTTP:", response.status)
+      const data = await safelyParseResponse(response)
+      console.log("Respuesta de la API (login con RUT):", data)
+      return data
+    } catch (error) {
+      return handleFetchError(error)
+    }
+  },
+
+  // Login with QR code
+  async loginWithQr(email: string, token: string): Promise<LoginResponse> {
+    try {
+      console.log("Sending QR login request to API:", { email, token })
+
+      const url = `${API_URL}/usuarios/login_qr.php`
+      console.log("QR login URL:", url)
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          token,
+        }),
+      })
+
+      console.log("HTTP status code:", response.status)
+      const data = await safelyParseResponse(response)
+      console.log("API response (QR login):", data)
+      return data
+    } catch (error) {
+      return handleFetchError(error)
+    }
+  },
 }
 
-// Servicio de marcajes
+// Cambiar el nombre del servicio de marcacionesService a markajesService
 export const marcajesService = {
   // Crear una nueva marcación
-  async crearMarcaje(
+  async crearMarcajes(
     usuario_id: string,
     tipo: string, // "in", "out", "lunch-out", "lunch-in"
     latitud?: number,
     longitud?: number,
-    photo_url?: string,
-  ): Promise<MarcajesResponse> {
+    foto_url?: string,
+  ): Promise<MarcacionResponse> {
     try {
       console.log("Enviando solicitud de marcaje a la API:", {
         usuario_id,
@@ -173,15 +244,15 @@ export const marcajesService = {
       })
 
       const url = `${API_URL}/marcajes/create.php`
-      console.log("URL de marcajes:", url)
+      console.log("URL de marcaje:", url)
 
-      // Crear el cuerpo de la solicitud
+      // Crear el cuerpo de la solicitud con los nombres de parámetros correctos
       const requestBody = {
         usuario_id,
         tipo,
         latitud,
         longitud,
-        photo_url,
+        foto_url,
       }
 
       console.log("Cuerpo de la solicitud:", JSON.stringify(requestBody))
@@ -261,6 +332,60 @@ export const empleadosService = {
 
       const data = await safelyParseResponse(response)
       console.log("Respuesta de la API (empleados):", data)
+      return data
+    } catch (error) {
+      return handleFetchError(error)
+    }
+  },
+
+  // Actualizar el estado de un empleado
+  async actualizarEstadoEmpleado(id: string, status: string): Promise<ApiResponse> {
+    try {
+      console.log("Actualizando estado del empleado:", { id, status })
+
+      const url = `${API_URL}/usuarios/update_status.php`
+      console.log("URL de actualización de estado:", url)
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          id,
+          status_employee: status,
+        }),
+      })
+
+      const data = await safelyParseResponse(response)
+      console.log("Respuesta de la API (actualización de estado):", data)
+      return data
+    } catch (error) {
+      return handleFetchError(error)
+    }
+  },
+}
+
+// Asegurarse de que el servicio de empresas esté correctamente implementado
+// Servicio de empresas
+export const empresasService = {
+  // Obtener todas las empresas
+  async obtenerEmpresas(): Promise<ApiResponse> {
+    try {
+      console.log("Solicitando lista de empresas")
+
+      const url = `${API_URL}/empresas/read.php`
+      console.log("URL de empresas:", url)
+
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+        },
+      })
+
+      const data = await safelyParseResponse(response)
+      console.log("Respuesta de la API (empresas):", data)
       return data
     } catch (error) {
       return handleFetchError(error)

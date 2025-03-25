@@ -104,7 +104,7 @@ useEffect(() => {
 
       if (response.error) {
         console.error("Error al cargar historial (API):", response.error)
-        showToast(response.message || "Error al cargar historial", "danger")
+        showToast(response.message || "Error al cargar historial", "error")
         return
       }
 
@@ -116,7 +116,7 @@ useEffect(() => {
       showToast("Historial cargado correctamente", "success")
     } catch (error) {
       console.error("Error al cargar historial:", error)
-      showToast("No se pudo cargar el historial de marcajes", "danger")
+      showToast("No se pudo cargar el historial de marcajes", "error")
     } finally {
       setIsLoading(false)
     }
@@ -212,7 +212,7 @@ useEffect(() => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Historial de Marcaciones</Text>
+        <Text style={styles.title}>Historial de Marca</Text>
 
         <View style={styles.viewModeContainer}>
           <TouchableOpacity

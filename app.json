@@ -12,9 +12,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#4C51BF"
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true
     },
@@ -40,7 +38,14 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Permitir a Marcador de Entradas acceder a tu ubicación."
         }
-      ]
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
+        }
+      ],
+      "expo-barcode-scanner"
     ],
     "extra": {
       "eas": {
