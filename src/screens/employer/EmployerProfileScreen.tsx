@@ -32,7 +32,7 @@ const EmployerProfileScreen = () => {
         <View style={styles.profileImageContainer}>
           <Image source={{ uri: "https://via.placeholder.com/150" }} style={styles.profileImage} />
         </View>
-        <Text style={styles.name}>{user?.name}</Text>
+        <Text style={styles.nombre}>{user?.nombre}</Text>
         <Text style={styles.email}>{user?.email}</Text>
         <Text style={styles.role}>Empleador</Text>
       </View>
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
   },
-  name: {
+  nombre: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#2D3748",

@@ -11,11 +11,11 @@ import { useSession } from "../../contexts/SessionContext"
 // Mock data for demonstration
 const generateMockEmployees = () => {
   return [
-    { id: "1", name: "Juan Pérez", position: "Desarrollador", status: "present" },
-    { id: "2", name: "María González", position: "Diseñadora", status: "present" },
-    { id: "3", name: "Carlos Rodríguez", position: "Gerente", status: "absent" },
-    { id: "4", name: "Ana Martínez", position: "Marketing", status: "present" },
-    { id: "5", name: "Luis Sánchez", position: "Soporte", status: "lunch" },
+    { id: "1", nombre: "Juan Pérez", position: "Desarrollador", status_employee: "present" },
+    { id: "2", nombre: "María González", position: "Diseñadora", status_employee: "present" },
+    { id: "3", nombre: "Carlos Rodríguez", position: "Gerente", status_employee: "absent" },
+    { id: "4", nombre: "Ana Martínez", position: "Marketing", status_employee: "present" },
+    { id: "5", nombre: "Luis Sánchez", position: "Soporte", status_employee: "lunch" },
   ]
 }
 
@@ -125,14 +125,14 @@ const EmployerHomeScreen = () => {
         {employees.slice(0, 3).map((employee) => (
           <View key={employee.id} style={styles.employeeCard}>
             <View style={styles.employeeInfo}>
-              <Text style={styles.employeeName}>{employee.name}</Text>
+              <Text style={styles.employeeName}>{employee.nombre}</Text>
               <Text style={styles.employeePosition}>{employee.position}</Text>
             </View>
 
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(employee.status) + "20" }]}>
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor(employee.status) }]} />
-              <Text style={[styles.statusText, { color: getStatusColor(employee.status) }]}>
-                {getStatusText(employee.status)}
+            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(employee.status_employee) + "20" }]}>
+              <View style={[styles.statusDot, { backgroundColor: getStatusColor(employee.status_employee) }]} />
+              <Text style={[styles.statusText, { color: getStatusColor(employee.status_employee) }]}>
+                {getStatusText(employee.status_employee)}
               </Text>
             </View>
           </View>

@@ -8,12 +8,24 @@ import { authService } from "../services/api"
 import { useSimpleToast } from "./SimpleToastContext"
 import { Platform } from "react-native"
 
+// Actualizar la interfaz User para incluir el teléfono
+// export interface User {
+//   id: string
+//   name: string
+//   email: string
+//   role: UserRole
+//   employerId?: string // For employees, reference to their employer
+//   empresaId: number // Numeric ID for the company
+//   status_employee?: string // Status of the employee (present, absent, etc.)
+//   phone?: string // Número de teléfono del usuario
+// }
+
 interface AuthContextType {
   user: User | null
   loading: boolean
   login: (email: string, password: string, isQrLogin?: boolean, qrUserData?: any) => Promise<boolean>
   logout: () => Promise<void>
-  register: (name: string, email: string, password: string, role: UserRole, rut?: string) => Promise<boolean>
+  register: (nombre: string, email: string, password: string, role: UserRole) => Promise<boolean>
   API_URL: string
 }
 
@@ -34,12 +46,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { showToast } = useSimpleToast()
 
   // API URL for backend calls - Use appropriate URL based on platform
-  const API_URL =
-    Platform.OS === "android"
-      ? "http://192.168.163.21/backendMarcadorEntradas/api"
-      : Platform.OS === "ios"
-        ? "http://192.168.163.21/backendMarcadorEntradas/api"
-        : "/backendMarcadorEntradas/api"
+  const getApiUrl = () => {
+    if (Platform.OS === "android") {
+      return "http://192.168.4.21/backendMarcadorEntradas/api"
+    } else if (Platform.OS === "ios") {
+      return "http://192.168.4.21/backendMarcadorEntradas/api"
+    } else {
+      // Para web, usar una URL relativa o absoluta según la configuración del servidor
+      //const baseUrl = window.location.origin
+      const baseUrl ="http://192.168.4.21"
+      return `${baseUrl}/backendMarcadorEntradas/api`
+    }
+  }
+  
+  const API_URL = getApiUrl()
 
   console.log(`Auth context using API URL for ${Platform.OS}:`, API_URL)
 
@@ -67,16 +87,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadUser()
   }, [])
 
-  // Login function
+  // Actualizar la función login para incluir el teléfono en el mockUser
   const login = async (
-    emailOrRut: string,
+    email: string,
     password: string,
     isQrLogin = false,
     qrUserData: any = null,
   ): Promise<boolean> => {
     try {
       setLoading(true)
-      console.log(`Starting ${isQrLogin ? "QR" : "standard"} login process for:`, emailOrRut)
+      console.log(`Starting ${isQrLogin ? "QR" : "standard"} login process for:`, email)
 
       // If it's a QR login and we have user data, skip the API call
       let apiUser
@@ -84,17 +104,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         apiUser = qrUserData
         console.log("Using QR provided user data:", apiUser)
       } else {
-        // Determine if input is email or RUT based on format
-        const isEmail = emailOrRut.includes("@")
-        let response
-
-        if (isEmail) {
-          // Call API to authenticate with email
-          response = await authService.login(emailOrRut, password)
-        } else {
-          // Call API to authenticate with RUT
-          response = await authService.loginWithRut(emailOrRut, password)
-        }
+        // Call API to authenticate
+        const response = await authService.login(email, password)
 
         if (response.error || !response.user) {
           console.error("API response error:", response.error || "User not found")
@@ -121,12 +132,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const mockUser: User = {
         id: apiUser.id || "1",
-        name: apiUser.nombre || "Test User",
-        email: apiUser.email || "",
+        nombre: apiUser.nombre || "Test User",
+        email,
         role: userRole,
         empresaId: Number(apiUser.empresa_id || "1"),
-        status_employee: apiUser.status_employee || "present",
-        rut: apiUser.rut || "",
+        status_employee: "present",
+        rut: "",
+        phone: apiUser.phone || "", // Incluir el teléfono
         ...(userRole === "employee" && { employerId: apiUser.empresa_id || "2" }),
       }
 
@@ -166,28 +178,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   // Register function
-  const register = async (
-    name: string,
-    email: string,
-    password: string,
-    role: UserRole,
-    rut?: string,
-  ): Promise<boolean> => {
+  const register = async (nombre: string, email: string, password: string, role: UserRole): Promise<boolean> => {
     try {
       setLoading(true)
       console.log("Starting registration process for:", email)
 
       // Call API to register
-      const response = await authService.register(
-        name,
-        email,
-        password,
-        role,
-        undefined,
-        "Sin asignar",
-        "Sin asignar",
-        rut,
-      )
+      const response = await authService.register(nombre, email, password, role)
 
       if (response.error) {
         console.error("API response error:", response.error)
@@ -199,12 +196,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const mockUser: User = {
         id: Date.now().toString(),
-        name,
+        nombre,
         email,
         role,
         empresaId: role === "employer" ? Number(Date.now().toString()) : 1,
         status_employee: "present",
-        rut: rut || "",
+        rut:"",
+        phone: "",
         ...(role === "employee" && { employerId: "2" }),
       }
 

@@ -4,13 +4,14 @@ export type UserRole = "employee" | "employer";
 
 export interface User {
   id: string
-  name: string
+  nombre: string
   email: string
   role: UserRole
   employerId?: string // For employees, reference to their employer
   empresaId:number;
   status_employee?:string;
   rut:string;
+  phone:string;
 }
 
 export type CheckType = "in" | "out" | "lunch-out" | "lunch-in"
@@ -32,10 +33,11 @@ export interface CheckRecord {
 
 export interface Employee {
   id: string
-  name: string
+  nombre: string
   email: string
   position: string
   department: string
-  status: "present" | "absent" | "lunch" | "late"
+  status_employee: "present" | "absent" | "lunch" | "late"
+  phone?: number;
 }
 

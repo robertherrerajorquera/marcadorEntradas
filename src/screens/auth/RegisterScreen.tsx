@@ -28,7 +28,7 @@ interface Company {
 }
 
 const RegisterScreen = () => {
-  const [name, setName] = useState("")
+  const [nombre, setNombre] = useState("")
   const [email, setEmail] = useState("")
   const [rut, setRut] = useState("")
   const [password, setPassword] = useState("")
@@ -42,6 +42,9 @@ const RegisterScreen = () => {
   const navigation = useNavigation()
   const { showToast } = useSimpleToast()
   const { API_URL } = useAuth()
+
+  // Añadir el estado para el teléfono después de los otros estados
+  const [phone, setPhone] = useState("")
 
   // Fetch companies from the database when the component mounts
   useEffect(() => {
@@ -171,9 +174,10 @@ const RegisterScreen = () => {
     return calculatedVerificationDigit === verificationDigit
   }
 
+  // Modificar la función handleRegister para incluir el teléfono
   const handleRegister = async () => {
     // Validación de campos
-    if (!name || !email || !password || !confirmPassword || !rut) {
+    if (!nombre || !email || !password || !confirmPassword || !rut) {
       showToast("Por favor completa todos los campos", "error")
       return
     }
@@ -205,7 +209,7 @@ const RegisterScreen = () => {
     setIsLoading(true)
     try {
       console.log("Iniciando registro de usuario:", {
-        name,
+        nombre,
         email,
         role,
         rut,
@@ -215,7 +219,7 @@ const RegisterScreen = () => {
 
       // Primero intentamos registrar en la API PHP
       const response = await authService.register(
-        name, // nombre
+        nombre, // nombre
         email, // email
         password, // password
         role, // role (ahora es "employer" o "employee")
@@ -223,6 +227,7 @@ const RegisterScreen = () => {
         "Sin asignar", // position
         "Sin asignar", // department
         rut, // rut (nuevo campo)
+        phone, // Añadir el teléfono
       )
 
       if (response.error) {
@@ -234,7 +239,7 @@ const RegisterScreen = () => {
       console.log("Registro exitoso en la API, actualizando estado local")
 
       // Si el registro en la API fue exitoso, actualizamos el estado local
-      await register(name, email, password, role)
+      await register(nombre, email, password, role)
       showToast("Registro exitoso. ¡Bienvenido!", "success")
     } catch (error) {
       console.error("Error en el registro:", error)
@@ -257,8 +262,8 @@ const RegisterScreen = () => {
           <TextInput
             style={styles.input}
             placeholder="Ingresa tu nombre"
-            value={name}
-            onChangeText={setName}
+            value={nombre}
+            onChangeText={setNombre}
             autoCapitalize="words"
           />
 
@@ -269,6 +274,15 @@ const RegisterScreen = () => {
             value={rut}
             onChangeText={handleRutChange}
             keyboardType="numeric"
+          />
+
+          <Text style={styles.label}>Teléfono</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ej: +56 9 1234 5678"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
           />
 
           <Text style={styles.label}>Email</Text>

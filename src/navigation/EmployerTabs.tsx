@@ -16,7 +16,7 @@ export type EmployeeStackParamList = {
       email: string
       position: string
       department: string
-      status: string
+      status_employee: string
       phone?: string
     }
   }

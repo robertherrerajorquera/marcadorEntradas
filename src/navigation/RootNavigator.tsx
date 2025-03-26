@@ -18,7 +18,7 @@ const RootNavigator = () => {
   useEffect(() => {
     console.log("RootNavigator - Auth state:", {
       isAuthenticated: !!user,
-      userName: user?.name,
+      userName: user?.nombre,
       role: user?.role,
       loading,
     })

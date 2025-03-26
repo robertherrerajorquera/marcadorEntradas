@@ -7,90 +7,15 @@ import { format } from "date-fns"
 import { useAuth } from "../../contexts/AuthContext"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import { useNavigation } from "@react-navigation/native"
+import { Employee as Usuario } from "../../types/index";
 
 // Mock data for demonstration (in a real app, this would come from the API)
-const generateMockEmployees = () => {
-  return [
-    {
-      id: "1",
-      nombre: "Juan Pérez",
-      position: "Desarrollador",
-      status_employee: "present",
-      department: "Tecnología",
-      email: "juan@example.com",
-      phone: "+56 9 1234 5678",
-    },
-    {
-      id: "2",
-      nombre: "María González",
-      position: "Diseñadora",
-      status_employee: "present",
-      department: "Diseño",
-      email: "maria@example.com",
-      phone: "+56 9 8765 4321",
-    },
-    {
-      id: "3",
-      nombre: "Carlos Rodríguez",
-      position: "Gerente",
-      status_employee: "absent",
-      department: "Administración",
-      email: "carlos@example.com",
-      phone: "+56 9 2345 6789",
-    },
-    {
-      id: "4",
-      nombre: "Ana Martínez",
-      position: "Marketing",
-      status_employee: "present",
-      department: "Marketing",
-      email: "ana@example.com",
-      phone: "+56 9 3456 7890",
-    },
-    {
-      id: "5",
-      nombre: "Luis Sánchez",
-      position: "Soporte",
-      status_employee: "lunch",
-      department: "Tecnología",
-      email: "luis@example.com",
-      phone: "+56 9 4567 8901",
-    },
-    {
-      id: "6",
-      nombre: "Laura Torres",
-      position: "Recursos Humanos",
-      status_employee: "present",
-      department: "RRHH",
-      email: "laura@example.com",
-      phone: "+56 9 5678 9012",
-    },
-    {
-      id: "7",
-      nombre: "Pedro Díaz",
-      position: "Contador",
-      status_employee: "absent",
-      department: "Finanzas",
-      email: "pedro@example.com",
-      phone: "+56 9 6789 0123",
-    },
-    {
-      id: "8",
-      nombre: "Sofía Vargas",
-      position: "Asistente",
-      status_employee: "present",
-      department: "Administración",
-      email: "sofia@example.com",
-      phone: "+56 9 7890 1234",
-    },
-  ]
-}
 
 const EmployerEmployeesScreen = () => {
   const { API_URL, user } = useAuth()
   const { showToast } = useSimpleToast()
   const navigation = useNavigation()
-  const [employees, setEmployees] = useState(generateMockEmployees())
+  const [employees, setEmployees] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
   const [filteredEmployees, setFilteredEmployees] = useState(employees)
   const [isLoading, setIsLoading] = useState(false)
@@ -112,21 +37,11 @@ const EmployerEmployeesScreen = () => {
           setEmployees(data.records)
           setFilteredEmployees(data.records)
           showToast(`${data.records.length} empleados cargados`, "success")
-        } else {
-          // Fallback to mock data if no records
-          const mockData = generateMockEmployees()
-          setEmployees(mockData)
-          setFilteredEmployees(mockData)
-          showToast("Usando datos de demostración", "info")
         }
       } catch (error) {
         console.error("Error al cargar empleados:", error)
         showToast("No se pudieron cargar los empleados", "error")
 
-        // Fallback to mock data on error
-        const mockData = generateMockEmployees()
-        setEmployees(mockData)
-        setFilteredEmployees(mockData)
       } finally {
         setIsLoading(false)
       }
@@ -141,7 +56,7 @@ const EmployerEmployeesScreen = () => {
       setFilteredEmployees(employees)
     } else {
       const filtered = employees.filter(
-        (employee) =>
+        (employee:Usuario) =>
           employee.nombre.toLowerCase().includes(text.toLowerCase()) ||
           employee.position.toLowerCase().includes(text.toLowerCase()) ||
           employee.department.toLowerCase().includes(text.toLowerCase()),
@@ -236,7 +151,7 @@ const EmployerEmployeesScreen = () => {
     }
   }
 
-  const exportEmployeeHistory = async (employee: any) => {
+  const exportEmployeeHistory = async (employee: Usuario) => {
     try {
       // Get date range for the export (last month)
       const today = new Date()
@@ -258,15 +173,15 @@ const EmployerEmployeesScreen = () => {
   }
 
   // Handle employee selection - navigate to detail screen or show options
-  const handleEmployeePress = (employee: any) => {
+  const handleEmployeePress = (employee: Usuario) => {
     // Format the employee data for the detail screen
     const employeeForDetail = {
       id: employee.id,
-      name: employee.nombre,
+      nombre: employee.nombre,
       email: employee.email || `${employee.nombre.toLowerCase().replace(/\s+/g, ".")}@example.com`,
       position: employee.position,
       department: employee.department,
-      status: employee.status_employee,
+      status_employee: employee.status_employee,
       phone: employee.phone || "+56 9 1234 5678",
     }
 
@@ -330,17 +245,17 @@ const EmployerEmployeesScreen = () => {
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{employees.filter((e) => e.status_employee === "present").length}</Text>
+            <Text style={styles.statValue}>{employees.filter((e:Usuario) => e.status_employee === "present").length}</Text>
             <Text style={styles.statLabel}>Presentes</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{employees.filter((e) => e.status_employee === "absent").length}</Text>
+            <Text style={styles.statValue}>{employees.filter((e:Usuario) => e.status_employee === "absent").length}</Text>
             <Text style={styles.statLabel}>Ausentes</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{employees.filter((e) => e.status_employee === "lunch").length}</Text>
+            <Text style={styles.statValue}>{employees.filter((e:Usuario) => e.status_employee === "lunch").length}</Text>
             <Text style={styles.statLabel}>Almorzando</Text>
           </View>
         </View>
@@ -348,7 +263,7 @@ const EmployerEmployeesScreen = () => {
 
       <FlatList
         data={filteredEmployees}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item:Usuario) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.employeeCard} onPress={() => handleEmployeePress(item)}>
             <View style={styles.employeeAvatarContainer}>

@@ -145,7 +145,7 @@ longitud: ${location.coords.longitude}`,
         longitud: location.coords.longitude,
       })
 
-      const response = await marcajesService.crearMarcajes(
+      const response = await marcajesService.crearMarcaje(
         user.id,
         type,
         location.coords.latitude,
@@ -217,7 +217,7 @@ longitud: ${location.coords.longitude}`,
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.greeting}>Hola, {user?.name}</Text>
+        <Text style={styles.greeting}>Hola, {user?.nombre}</Text>
         <Text style={styles.date}>{format(currentTime, "EEEE, d 'de' MMMM", { locale: es })}</Text>
         <Text style={styles.time}>{format(currentTime, "HH:mm:ss")}</Text>
       </View>

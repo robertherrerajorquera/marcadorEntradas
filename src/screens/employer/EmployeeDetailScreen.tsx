@@ -18,7 +18,7 @@ type EmployeeDetailScreenNavigationProp = NativeStackNavigationProp<EmployeeStac
 type EmployeeDetailScreenRouteProp = RouteProp<EmployeeStackParamList, "EmployeeDetail">
 
 // Type for attendance records
-interface Marcacion {
+interface Marcaje {
   id: string
   tipo: string
   timestamp: string
@@ -35,12 +35,12 @@ const EmployeeDetailScreen = () => {
   const { API_URL } = useAuth()
 
   const [isLoading, setIsLoading] = useState(true)
-  const [marcaciones, setMarcaciones] = useState<Marcacion[]>([])
+  const [marcajes, setMarcajes] = useState<Marcaje[]>([])
   const [lastLocation, setLastLocation] = useState<{ latitud: number; longitud: number } | null>(null)
 
   // Load employee attendance records
   useEffect(() => {
-    const loadMarcaciones = async () => {
+    const loadMarcajes = async () => {
       setIsLoading(true)
       try {
         // Get current date in YYYY-MM-DD format
@@ -52,16 +52,16 @@ const EmployeeDetailScreen = () => {
 
         if (response.error) {
           console.error("Error loading attendance records:", response.error)
-          showToast("No se pudieron cargar las marcaciones", "error")
+          showToast("No se pudieron cargar las marcajes", "error")
 
           // Use mock data on error
-          const mockMarcaciones = generateMockMarcaciones(employee.id)
-          setMarcaciones(mockMarcaciones)
+          const mockMarcajes = generateMockMarcajes(employee.id)
+          setMarcajes(mockMarcajes)
 
-          if (mockMarcaciones.length > 0) {
+          if (mockMarcajes.length > 0) {
             setLastLocation({
-              latitud: mockMarcaciones[0].latitud,
-              longitud: mockMarcaciones[0].longitud,
+              latitud: mockMarcajes[0].latitud,
+              longitud: mockMarcajes[0].longitud,
             })
           }
           return
@@ -70,28 +70,28 @@ const EmployeeDetailScreen = () => {
         // Process records if available
         if (response.records && Array.isArray(response.records)) {
           // Sort by timestamp (most recent first)
-          const sortedMarcaciones = response.records.sort(
+          const sortedMarcajes = response.records.sort(
             (a:any, b:any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
           )
 
-          setMarcaciones(sortedMarcaciones)
+          setMarcajes(sortedMarcajes)
 
           // Set last location if available
-          if (sortedMarcaciones.length > 0 && sortedMarcaciones[0].latitud && sortedMarcaciones[0].longitud) {
+          if (sortedMarcajes.length > 0 && sortedMarcajes[0].latitud && sortedMarcajes[0].longitud) {
             setLastLocation({
-              latitud: Number.parseFloat(sortedMarcaciones[0].latitud),
-              longitud: Number.parseFloat(sortedMarcaciones[0].longitud),
+              latitud: Number.parseFloat(sortedMarcajes[0].latitud),
+              longitud: Number.parseFloat(sortedMarcajes[0].longitud),
             })
           }
         } else {
           // Use mock data if no records
-          const mockMarcaciones = generateMockMarcaciones(employee.id)
-          setMarcaciones(mockMarcaciones)
+          const mockMarcajes = generateMockMarcajes(employee.id)
+          setMarcajes(mockMarcajes)
 
-          if (mockMarcaciones.length > 0) {
+          if (mockMarcajes.length > 0) {
             setLastLocation({
-              latitud: mockMarcaciones[0].latitud,
-              longitud: mockMarcaciones[0].longitud,
+              latitud: mockMarcajes[0].latitud,
+              longitud: mockMarcajes[0].longitud,
             })
           }
         }
@@ -100,13 +100,13 @@ const EmployeeDetailScreen = () => {
         showToast("Error al cargar datos del empleado", "error")
 
         // Use mock data on error
-        const mockMarcaciones = generateMockMarcaciones(employee.id)
-        setMarcaciones(mockMarcaciones)
+        const mockMarcajes = generateMockMarcajes(employee.id)
+        setMarcajes(mockMarcajes)
 
-        if (mockMarcaciones.length > 0) {
+        if (mockMarcajes.length > 0) {
           setLastLocation({
-            latitud: mockMarcaciones[0].latitud,
-            longitud: mockMarcaciones[0].longitud,
+            latitud: mockMarcajes[0].latitud,
+            longitud: mockMarcajes[0].longitud,
           })
         }
       } finally {
@@ -114,11 +114,11 @@ const EmployeeDetailScreen = () => {
       }
     }
 
-    loadMarcaciones()
+    loadMarcajes()
   }, [employee.id, showToast])
 
   // Generate mock data for demonstration
-  const generateMockMarcaciones = (employeeId: string): Marcacion[] => {
+  const generateMockMarcajes = (employeeId: string): Marcaje[] => {
     const today = new Date()
 
     // Coordinates for Santiago, Chile (as example)
@@ -159,17 +159,17 @@ const EmployeeDetailScreen = () => {
 
   // Get current employee status based on attendance records
   const getCurrentStatus = (): string => {
-    if (marcaciones.length === 0) return "Sin registros hoy"
+    if (marcajes.length === 0) return "Sin registros hoy"
 
     // Sort records by timestamp (most recent first)
-    const sortedMarcaciones = [...marcaciones].sort(
+    const sortedMarcajes = [...marcajes].sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     )
 
     // Last record determines current status
-    const lastMarcacion = sortedMarcaciones[0]
+    const lastMarcaje = sortedMarcajes[0]
 
-    switch (lastMarcacion.tipo) {
+    switch (lastMarcaje.tipo) {
       case "in":
         return "Presente (ingresó)"
       case "out":
@@ -192,7 +192,7 @@ const EmployeeDetailScreen = () => {
   }
 
   // Format attendance record type
-  const formatTipoMarcacion = (tipo: string): string => {
+  const formatTipoMarcaje = (tipo: string): string => {
     switch (tipo) {
       case "in":
         return "Entrada"
@@ -366,28 +366,28 @@ const EmployeeDetailScreen = () => {
 
           {/* Today's attendance history */}
           <View style={styles.historyCard}>
-            <Text style={styles.sectionTitle}>Marcaciones de Hoy</Text>
+            <Text style={styles.sectionTitle}>Marcajes de Hoy</Text>
 
-            {marcaciones.length === 0 ? (
+            {marcajes.length === 0 ? (
               <Text style={styles.noRecordsText}>No hay registros para hoy</Text>
             ) : (
-              marcaciones.map((marcacion) => (
-                <View key={marcacion.id} style={styles.marcacionItem}>
-                  <View style={styles.marcacionHeader}>
-                    <View style={styles.marcacionTypeContainer}>
+              marcajes.map((marcaje) => (
+                <View key={marcaje.id} style={styles.marcajeItem}>
+                  <View style={styles.marcajeHeader}>
+                    <View style={styles.marcajeTypeContainer}>
                       <Clock stroke="#4C51BF" width={16} height={16} />
-                      <Text style={styles.marcacionType}>{formatTipoMarcacion(marcacion.tipo)}</Text>
+                      <Text style={styles.marcajeType}>{formatTipoMarcaje(marcaje.tipo)}</Text>
                     </View>
-                    <Text style={styles.marcacionTime}>{format(new Date(marcacion.timestamp), "HH:mm")}</Text>
+                    <Text style={styles.marcajeTime}>{format(new Date(marcaje.timestamp), "HH:mm")}</Text>
                   </View>
 
                   <TouchableOpacity
                     style={styles.locationContainer}
-                    onPress={() => openLocationInMap(marcacion.latitud, marcacion.longitud)}
+                    onPress={() => openLocationInMap(marcaje.latitud, marcaje.longitud)}
                   >
                     <MapPin stroke="#718096" width={14} height={14} />
                     <Text style={styles.locationText}>
-                      Lat: {marcacion.latitud.toFixed(6)}, Lon: {marcacion.longitud.toFixed(6)}
+                      Lat: {marcaje.latitud.toFixed(6)}, Lon: {marcaje.longitud.toFixed(6)}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -616,28 +616,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginVertical: 20,
   },
-  marcacionItem: {
+  marcajeItem: {
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
     paddingVertical: 12,
   },
-  marcacionHeader: {
+  marcajeHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
   },
-  marcacionTypeContainer: {
+  marcajeTypeContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
-  marcacionType: {
+  marcajeType: {
     marginLeft: 8,
     fontSize: 16,
     fontWeight: "500",
     color: "#2D3748",
   },
-  marcacionTime: {
+  marcajeTime: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#4C51BF",

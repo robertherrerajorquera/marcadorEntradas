@@ -3,12 +3,28 @@
 import { Platform } from "react-native"
 
 // Get the appropriate API URL based on platform
-const API_URL =
-  Platform.OS === "android"
-    ? "http://192.168.163.21/backendMarcadorEntradas/api"
-    : Platform.OS === "ios"
-      ? "http://192.168.163.21/backendMarcadorEntradas/api"
-      : "/backendMarcadorEntradas/api"
+// const API_URL =
+//   Platform.OS === "android"
+//     ? "http://192.168.163.21/backendMarcadorEntradas/api"
+//     : Platform.OS === "ios"
+//       ? "http://192.168.163.21/backendMarcadorEntradas/api"
+//       : "/backendMarcadorEntradas/api"
+
+
+      const getApiUrl = () => {
+        if (Platform.OS === "android") {
+          return "http://192.168.4.21/backendMarcadorEntradas/api"
+        } else if (Platform.OS === "ios") {
+          return "http://192.168.4.21/backendMarcadorEntradas/api"
+        } else {
+          // Para web, usar una URL relativa o absoluta según la configuración del servidor
+         // const baseUrl = window.location.origin
+          const baseUrl ="http://192.168.4.21";
+          return `${baseUrl}/backendMarcadorEntradas/api`;
+        }
+      }
+      
+      const API_URL = getApiUrl()
 
 console.log(`Using API URL for ${Platform.OS}:`, API_URL)
 
@@ -84,6 +100,7 @@ export const authService = {
     position?: string,
     department?: string,
     rut?: string, // Nuevo campo RUT
+    phone?: string, // Nuevo campo teléfono
   ): Promise<ApiResponse> {
     try {
       console.log("Enviando solicitud de registro a la API:", {
@@ -94,6 +111,7 @@ export const authService = {
         position,
         department,
         rut, // Incluir RUT en el log
+        phone, // Incluir teléfono en el log
       })
 
       // Verificar que la URL sea correcta
@@ -109,6 +127,7 @@ export const authService = {
         position,
         department,
         rut, // Incluir RUT en la solicitud
+        phone, // Incluir teléfono en la solicitud
       }
 
       console.log("Cuerpo de la solicitud:", JSON.stringify(requestBody))
@@ -228,7 +247,7 @@ export const authService = {
 // Cambiar el nombre del servicio de marcacionesService a markajesService
 export const marcajesService = {
   // Crear una nueva marcación
-  async crearMarcajes(
+  async crearMarcaje(
     usuario_id: string,
     tipo: string, // "in", "out", "lunch-out", "lunch-in"
     latitud?: number,
