@@ -1,45 +1,259 @@
-"use client"
+
 
 import { useState, useEffect } from "react"
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native"
-import { format } from "date-fns"
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native"
+import { format, startOfWeek, addDays } from "date-fns"
 import { es } from "date-fns/locale"
 import { Users, Clock, ChevronRight } from "react-native-feather"
 import { useNavigation } from "@react-navigation/native"
 import { useSession } from "../../contexts/SessionContext"
+import { useAuth } from "../../contexts/AuthContext"
+import { useSimpleToast } from "../../contexts/SimpleToastContext"
+import { empleadosService, marcajesService } from "../../services/api"
 
-// Mock data for demonstration
-const generateMockEmployees = () => {
-  return [
-    { id: "1", nombre: "Juan Pérez", position: "Desarrollador", status_employee: "present" },
-    { id: "2", nombre: "María González", position: "Diseñadora", status_employee: "present" },
-    { id: "3", nombre: "Carlos Rodríguez", position: "Gerente", status_employee: "absent" },
-    { id: "4", nombre: "Ana Martínez", position: "Marketing", status_employee: "present" },
-    { id: "5", nombre: "Luis Sánchez", position: "Soporte", status_employee: "lunch" },
-  ]
+// Interfaces para los datos
+interface Employee {
+  id: string
+  nombre: string
+  position: string
+  department: string
+  status_employee: string
 }
 
-const generateMockStats = () => {
-  return {
-    totalEmployees: 5,
-    presentToday: 3,
-    absentToday: 1,
-    onLunch: 1,
-    lateToday: 0,
-    averageWorkHours: 8.2,
-  }
+interface Stats {
+  totalEmployees: number
+  presentToday: number
+  absentToday: number
+  onLunch: number
+  lateToday: number
+  averageWorkHours: number
+}
+
+interface WeeklyData {
+  day: string
+  count: number
+  date: Date
 }
 
 const EmployerHomeScreen = () => {
-  const [employees] = useState(generateMockEmployees())
-  const [stats] = useState(generateMockStats())
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [stats, setStats] = useState<Stats>({
+    totalEmployees: 0,
+    presentToday: 0,
+    absentToday: 0,
+    onLunch: 0,
+    lateToday: 0,
+    averageWorkHours: 0,
+  })
+  const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingWeekly, setIsLoadingWeekly] = useState(true)
   const navigation = useNavigation()
   const { resetInactivityTimer } = useSession()
+  const { user, API_URL } = useAuth()
+  const { showToast } = useSimpleToast()
+
+  // Añadir un nuevo estado para las horas promedio
+  const [averageWorkHours, setAverageWorkHours] = useState(0)
 
   // Reiniciar el temporizador de inactividad cuando se monta el componente
   useEffect(() => {
+    console.log("EmployerHomeScreen mounted")
     resetInactivityTimer()
   }, [resetInactivityTimer])
+
+  // Cargar datos de empleados y estadísticas
+  useEffect(() => {
+    const loadEmployeeData = async () => {
+      if (!user?.id) return
+
+      setIsLoading(true)
+      try {
+        console.log("Cargando datos de empleados para empresa ID:", user.empresaId)
+
+        // Obtener lista de empleados
+        const response:any = await empleadosService.obtenerEmpleadosPorEmpresa(user.empresaId.toString())
+
+        if (response.error) {
+          console.error("Error al cargar empleados:", response.error)
+          showToast("No se pudieron cargar los datos de empleados", "error")
+          return
+        }
+
+        if (response.records && Array.isArray(response.records)) {
+          console.log(`Se encontraron ${response.records.length} empleados`)
+
+          // Procesar empleados y calcular estadísticas
+          const employeeList = response.records.map((emp:any) => ({
+            id: emp.id,
+            nombre: emp.nombre,
+            position: emp.position || "Sin asignar",
+            department: emp.department || "Sin asignar",
+            status_employee: emp.status_employee || "absent",
+          }))
+
+          setEmployees(employeeList)
+
+          // Calcular estadísticas
+          const presentCount = employeeList.filter((e:any) => e.status_employee === "present").length
+          const absentCount = employeeList.filter((e:any) => e.status_employee === "absent").length
+          const lunchCount = employeeList.filter((e:any) => e.status_employee === "lunch").length
+          const lateCount = employeeList.filter((e:any) => e.status_employee === "late").length
+
+          setStats({
+            totalEmployees: employeeList.length,
+            presentToday: presentCount,
+            absentToday: absentCount,
+            onLunch: lunchCount,
+            lateToday: lateCount,
+            averageWorkHours: 8.2, // Este valor podría calcularse con datos reales
+          })
+
+          showToast("Datos cargados correctamente", "success")
+        } else {
+          console.warn("No se encontraron empleados o formato incorrecto:", response)
+          showToast("No se encontraron empleados", "info")
+        }
+      } catch (error) {
+        console.error("Error al cargar datos de empleados:", error)
+        showToast("Error al cargar datos", "error")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadEmployeeData()
+  }, [user, showToast])
+
+  // Cargar datos semanales
+  useEffect(() => {
+    const loadWeeklyData = async () => {
+      if (!user?.id) return
+
+      setIsLoadingWeekly(true)
+      try {
+        // Calcular fechas para la semana actual
+        const today = new Date()
+        const startOfCurrentWeek = startOfWeek(today, { weekStartsOn: 1 }) // Lunes
+
+        // Crear array para los días de la semana
+        const weekDays = []
+        for (let i = 0; i < 5; i++) {
+          // Solo días laborables (Lun-Vie)
+          const day = addDays(startOfCurrentWeek, i)
+          weekDays.push({
+            day: format(day, "EEE", { locale: es }).substring(0, 3),
+            date: day,
+            count: 0,
+          })
+        }
+
+        // Para cada día, obtener conteo de marcajes
+        let totalWorkHours = 0
+        let totalWorkDays = 0
+
+        for (let i = 0; i < weekDays.length; i++) {
+          const currentDay = weekDays[i]
+          const formattedDate = format(currentDay.date, "yyyy-MM-dd")
+
+          try {
+            // Obtener marcajes para este día
+            const response:any = await marcajesService.obtenerHistorial(
+              user.empresaId.toString(),
+              formattedDate,
+              formattedDate,
+            )
+
+            if (response.records && Array.isArray(response.records)) {
+              // Contar marcajes de entrada únicos por usuario
+              const uniqueUserIds = new Set()
+              response.records.forEach((record:any) => {
+                if (record.tipo === "in") {
+                  uniqueUserIds.add(record.usuario_id)
+                }
+              })
+
+              weekDays[i].count = uniqueUserIds.size
+
+              // Calcular horas trabajadas para este día
+              const userWorkHours = new Map()
+
+              // Agrupar marcajes por usuario
+              response.records.forEach((record:any) => {
+                const userId = record.usuario_id
+                if (!userWorkHours.has(userId)) {
+                  userWorkHours.set(userId, { inTime: null, outTime: null })
+                }
+
+                const userRecord = userWorkHours.get(userId)
+
+                // Registrar hora de entrada
+                if (
+                  record.tipo === "in" &&
+                  (!userRecord.inTime || new Date(record.timestamp) < new Date(userRecord.inTime))
+                ) {
+                  userRecord.inTime = record.timestamp
+                }
+
+                // Registrar hora de salida
+                if (
+                  record.tipo === "out" &&
+                  (!userRecord.outTime || new Date(record.timestamp) > new Date(userRecord.outTime))
+                ) {
+                  userRecord.outTime = record.timestamp
+                }
+              })
+
+              // Calcular horas trabajadas por cada usuario
+              let dayTotalHours = 0
+              let dayUserCount = 0
+
+              userWorkHours.forEach((record, userId) => {
+                if (record.inTime && record.outTime) {
+                  const inTime = new Date(record.inTime)
+                  const outTime = new Date(record.outTime)
+
+                  // Calcular diferencia en horas
+                  const diffMs = outTime.getTime() - inTime.getTime()
+                  const diffHours = diffMs / (1000 * 60 * 60)
+
+                  // Solo contar si es un valor razonable (entre 1 y 14 horas)
+                  if (diffHours >= 1 && diffHours <= 14) {
+                    dayTotalHours += diffHours
+                    dayUserCount++
+                  }
+                }
+              })
+
+              // Añadir al total si hay datos válidos
+              if (dayUserCount > 0) {
+                totalWorkHours += dayTotalHours
+                totalWorkDays += dayUserCount
+              }
+            }
+          } catch (dayError) {
+            console.error(`Error al cargar datos para ${formattedDate}:`, dayError)
+          }
+        }
+
+        setWeeklyData(weekDays)
+
+        // Calcular promedio de horas trabajadas
+        if (totalWorkDays > 0) {
+          const average = totalWorkHours / totalWorkDays
+          setAverageWorkHours(Number.parseFloat(average.toFixed(1)))
+        } else {
+          setAverageWorkHours(0)
+        }
+      } catch (error) {
+        console.error("Error al cargar datos semanales:", error)
+      } finally {
+        setIsLoadingWeekly(false)
+      }
+    }
+
+    loadWeeklyData()
+  }, [user, showToast])
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -69,6 +283,28 @@ const EmployerHomeScreen = () => {
       default:
         return "#A0AEC0"
     }
+  }
+
+  // Calcular altura máxima para las barras del gráfico
+  const getMaxBarHeight = () => {
+    const maxCount = Math.max(...weeklyData.map((day) => day.count), 1)
+    return maxCount
+  }
+
+  // Calcular altura relativa para cada barra
+  const getBarHeight = (count: number) => {
+    const maxCount = getMaxBarHeight()
+    // Altura máxima de 100px, mínima de 10px
+    return count > 0 ? Math.max(10, (count / maxCount) * 100) : 10
+  }
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#4C51BF" />
+        <Text style={styles.loadingText}>Cargando datos...</Text>
+      </View>
+    )
   }
 
   return (
@@ -122,75 +358,83 @@ const EmployerHomeScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {employees.slice(0, 3).map((employee) => (
-          <View key={employee.id} style={styles.employeeCard}>
-            <View style={styles.employeeInfo}>
-              <Text style={styles.employeeName}>{employee.nombre}</Text>
-              <Text style={styles.employeePosition}>{employee.position}</Text>
-            </View>
+        {employees.length === 0 ? (
+          <Text style={styles.emptyText}>No hay empleados registrados</Text>
+        ) : (
+          employees.slice(0, 3).map((employee) => (
+            <View key={employee.id} style={styles.employeeCard}>
+              <View style={styles.employeeInfo}>
+                <Text style={styles.employeeName}>{employee.nombre}</Text>
+                <Text style={styles.employeePosition}>
+                  {employee.position} • {employee.department}
+                </Text>
+              </View>
 
-            <View style={[styles.statusBadge, { backgroundColor: getStatusColor(employee.status_employee) + "20" }]}>
-              <View style={[styles.statusDot, { backgroundColor: getStatusColor(employee.status_employee) }]} />
-              <Text style={[styles.statusText, { color: getStatusColor(employee.status_employee) }]}>
-                {getStatusText(employee.status_employee)}
-              </Text>
+              <View style={[styles.statusBadge, { backgroundColor: getStatusColor(employee.status_employee) + "20" }]}>
+                <View style={[styles.statusDot, { backgroundColor: getStatusColor(employee.status_employee) }]} />
+                <Text style={[styles.statusText, { color: getStatusColor(employee.status_employee) }]}>
+                  {getStatusText(employee.status_employee)}
+                </Text>
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </View>
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Resumen Semanal</Text>
-          <TouchableOpacity style={styles.seeAllButton} onPress={() => resetInactivityTimer()}>
+          <TouchableOpacity disabled style={styles.seeAllButton} onPress={() => resetInactivityTimer()}>
             <Text style={styles.seeAllText}>Ver detalles</Text>
             <ChevronRight stroke="#4C51BF" width={16} height={16} />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.weekSummary}>
-          <View style={styles.weekDay}>
-            <Text style={styles.weekDayLabel}>Lun</Text>
-            <View style={[styles.weekDayBar, { height: 80 }]} />
-            <Text style={styles.weekDayValue}>5</Text>
+        {isLoadingWeekly ? (
+          <View style={styles.weeklyLoadingContainer}>
+            <ActivityIndicator size="small" color="#4C51BF" />
+            <Text style={styles.weeklyLoadingText}>Cargando datos semanales...</Text>
           </View>
+        ) : (
+          <>
+            <View style={styles.weekSummary}>
+              {weeklyData.map((day, index) => (
+                <View key={index} style={styles.weekDay}>
+                  <Text style={styles.weekDayLabel}>{day.day}</Text>
+                  <View
+                    style={[
+                      styles.weekDayBar,
+                      {
+                        height: getBarHeight(day.count),
+                        backgroundColor:
+                          format(day.date, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+                            ? "#4C51BF"
+                            : day.date > new Date()
+                              ? "#E2E8F0"
+                              : "#4C51BF",
+                      },
+                    ]}
+                  />
+                  <Text style={styles.weekDayValue}>{day.date > new Date() ? "-" : day.count}</Text>
+                </View>
+              ))}
+            </View>
 
-          <View style={styles.weekDay}>
-            <Text style={styles.weekDayLabel}>Mar</Text>
-            <View style={[styles.weekDayBar, { height: 100 }]} />
-            <Text style={styles.weekDayValue}>5</Text>
-          </View>
+            <View style={styles.weekStats}>
+              <View style={styles.weekStatItem}>
+                <Text style={styles.weekStatLabel}>Promedio de horas:</Text>
+                <Text style={styles.weekStatValue}>{averageWorkHours > 0 ? `${averageWorkHours} hrs` : "N/A"}</Text>
+              </View>
 
-          <View style={styles.weekDay}>
-            <Text style={styles.weekDayLabel}>Mié</Text>
-            <View style={[styles.weekDayBar, { height: 90 }]} />
-            <Text style={styles.weekDayValue}>5</Text>
-          </View>
-
-          <View style={styles.weekDay}>
-            <Text style={styles.weekDayLabel}>Jue</Text>
-            <View style={[styles.weekDayBar, { height: 95 }]} />
-            <Text style={styles.weekDayValue}>5</Text>
-          </View>
-
-          <View style={styles.weekDay}>
-            <Text style={styles.weekDayLabel}>Vie</Text>
-            <View style={[styles.weekDayBar, { height: 70, backgroundColor: "#E2E8F0" }]} />
-            <Text style={styles.weekDayValue}>-</Text>
-          </View>
-        </View>
-
-        <View style={styles.weekStats}>
-          <View style={styles.weekStatItem}>
-            <Text style={styles.weekStatLabel}>Promedio de horas:</Text>
-            <Text style={styles.weekStatValue}>{stats.averageWorkHours} hrs</Text>
-          </View>
-
-          <View style={styles.weekStatItem}>
-            <Text style={styles.weekStatLabel}>Asistencia:</Text>
-            <Text style={styles.weekStatValue}>92%</Text>
-          </View>
-        </View>
+              <View style={styles.weekStatItem}>
+                <Text style={styles.weekStatLabel}>Asistencia:</Text>
+                <Text style={styles.weekStatValue}>
+                  {stats.totalEmployees > 0 ? Math.round((stats.presentToday / stats.totalEmployees) * 100) : 0}%
+                </Text>
+              </View>
+            </View>
+          </>
+        )}
       </View>
     </ScrollView>
   )
@@ -200,6 +444,33 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F7FAFC",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F7FAFC",
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#4A5568",
+  },
+  weeklyLoadingContainer: {
+    padding: 20,
+    alignItems: "center",
+  },
+  weeklyLoadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: "#718096",
+  },
+  emptyText: {
+    textAlign: "center",
+    padding: 20,
+    color: "#718096",
+    fontSize: 16,
   },
   header: {
     padding: 20,

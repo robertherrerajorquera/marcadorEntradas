@@ -1,4 +1,4 @@
-"use client"
+
 
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Platform } from "react-native"
 import { User, LogOut, Settings, Bell, Shield } from "react-native-feather"

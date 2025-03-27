@@ -1,13 +1,11 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from "react-native"
-import { ArrowLeft, MapPin, Clock, User, Phone, Mail, Briefcase, Download } from "react-native-feather"
+import { ArrowLeft, MapPin, Clock, User, Phone, Mail, Briefcase } from "react-native-feather"
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native"
 import { format } from "date-fns"
-import { marcajesService } from "../../services/api"
-import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import { useAuth } from "../../contexts/AuthContext"
+import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import type { EmployeeStackParamList } from "../../navigation/EmployerTabs"
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 
@@ -18,13 +16,26 @@ type EmployeeDetailScreenNavigationProp = NativeStackNavigationProp<EmployeeStac
 type EmployeeDetailScreenRouteProp = RouteProp<EmployeeStackParamList, "EmployeeDetail">
 
 // Type for attendance records
-interface Marcaje {
+interface Marcacion {
   id: string
+  usuario_id: string
   tipo: string
   timestamp: string
   latitud: number
   longitud: number
   foto_url?: string
+}
+
+// Type for employee details
+interface EmployeeDetails {
+  id: string
+  nombre: string
+  email: string
+  position: string
+  department: string
+  status_employee: string
+  phone?: string
+  rut?: string
 }
 
 const EmployeeDetailScreen = () => {
@@ -35,164 +46,70 @@ const EmployeeDetailScreen = () => {
   const { API_URL } = useAuth()
 
   const [isLoading, setIsLoading] = useState(true)
-  const [marcajes, setMarcajes] = useState<Marcaje[]>([])
+  const [marcaciones, setMarcaciones] = useState<Marcacion[]>([])
   const [lastLocation, setLastLocation] = useState<{ latitud: number; longitud: number } | null>(null)
+  const [employeeDetails, setEmployeeDetails] = useState<EmployeeDetails | null>(null)
 
-  // Load employee attendance records
+  // Load employee details and attendance records
   useEffect(() => {
-    const loadMarcajes = async () => {
+    const loadEmployeeData = async () => {
       setIsLoading(true)
       try {
-        // Get current date in YYYY-MM-DD format
-        const today = new Date()
-        const formattedDate = format(today, "yyyy-MM-dd")
+        console.log("Cargando datos del empleado ID:", employee.id)
 
-        // Call API to get today's attendance records
-        const response:any = await marcajesService.obtenerHistorial(employee.id, formattedDate, formattedDate)
+        // Fetch employee details
+        const detalleResponse = await fetch(`${API_URL}/usuarios/detalle.php?id=${employee.id}`)
+        const detalleData = await detalleResponse.json()
+        console.log("Respuesta de detalles:", detalleData)
 
-        if (response.error) {
-          console.error("Error loading attendance records:", response.error)
-          showToast("No se pudieron cargar las marcajes", "error")
-
-          // Use mock data on error
-          const mockMarcajes = generateMockMarcajes(employee.id)
-          setMarcajes(mockMarcajes)
-
-          if (mockMarcajes.length > 0) {
-            setLastLocation({
-              latitud: mockMarcajes[0].latitud,
-              longitud: mockMarcajes[0].longitud,
-            })
-          }
-          return
+        if (detalleResponse.ok) {
+          setEmployeeDetails(detalleData)
+        } else {
+          console.error("Error loading employee details:", detalleData.error)
+          showToast("No se pudieron cargar los detalles del empleado", "error")
         }
 
-        // Process records if available
-        if (response.records && Array.isArray(response.records)) {
+        // Fetch today's attendance records
+        console.log("Solicitando marcajes para usuario ID:", employee.id)
+        const marcajesResponse = await fetch(`${API_URL}/marcajes/hoy.php?usuario_id=${employee.id}`)
+        const marcajesData = await marcajesResponse.json()
+        console.log("Respuesta de marcajes:", marcajesData)
+
+        if (marcajesResponse.ok && marcajesData.records) {
+          console.log("Número de marcajes encontrados:", marcajesData.records.length)
+
           // Sort by timestamp (most recent first)
-          const sortedMarcajes = response.records.sort(
-            (a:any, b:any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+          const sortedMarcaciones = [...marcajesData.records].sort(
+            (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
           )
 
-          setMarcajes(sortedMarcajes)
+          setMarcaciones(sortedMarcaciones)
 
           // Set last location if available
-          if (sortedMarcajes.length > 0 && sortedMarcajes[0].latitud && sortedMarcajes[0].longitud) {
+          if (sortedMarcaciones.length > 0 && sortedMarcaciones[0].latitud && sortedMarcaciones[0].longitud) {
             setLastLocation({
-              latitud: Number.parseFloat(sortedMarcajes[0].latitud),
-              longitud: Number.parseFloat(sortedMarcajes[0].longitud),
+              latitud: Number.parseFloat(sortedMarcaciones[0].latitud.toString()),
+              longitud: Number.parseFloat(sortedMarcaciones[0].longitud.toString()),
             })
           }
         } else {
-          // Use mock data if no records
-          const mockMarcajes = generateMockMarcajes(employee.id)
-          setMarcajes(mockMarcajes)
-
-          if (mockMarcajes.length > 0) {
-            setLastLocation({
-              latitud: mockMarcajes[0].latitud,
-              longitud: mockMarcajes[0].longitud,
-            })
-          }
+          // No records found or error
+          console.log("No se encontraron marcajes o hubo un error:", marcajesData)
+          setMarcaciones([])
         }
       } catch (error) {
-        console.error("Error loading attendance records:", error)
+        console.error("Error loading employee data:", error)
         showToast("Error al cargar datos del empleado", "error")
-
-        // Use mock data on error
-        const mockMarcajes = generateMockMarcajes(employee.id)
-        setMarcajes(mockMarcajes)
-
-        if (mockMarcajes.length > 0) {
-          setLastLocation({
-            latitud: mockMarcajes[0].latitud,
-            longitud: mockMarcajes[0].longitud,
-          })
-        }
       } finally {
         setIsLoading(false)
       }
     }
 
-    loadMarcajes()
-  }, [employee.id, showToast])
-
-  // Generate mock data for demonstration
-  const generateMockMarcajes = (employeeId: string): Marcaje[] => {
-    const today = new Date()
-
-    // Coordinates for Santiago, Chile (as example)
-    const baseLatitud = -33.4489
-    const baseLongitud = -70.6693
-
-    return [
-      {
-        id: "1",
-        tipo: "in",
-        timestamp: format(new Date(today.setHours(8, 5)), "yyyy-MM-dd'T'HH:mm:ss"),
-        latitud: baseLatitud + Math.random() * 0.01,
-        longitud: baseLongitud + Math.random() * 0.01,
-      },
-      {
-        id: "2",
-        tipo: "lunch-out",
-        timestamp: format(new Date(today.setHours(13, 2)), "yyyy-MM-dd'T'HH:mm:ss"),
-        latitud: baseLatitud + Math.random() * 0.01,
-        longitud: baseLongitud + Math.random() * 0.01,
-      },
-      {
-        id: "3",
-        tipo: "lunch-in",
-        timestamp: format(new Date(today.setHours(14, 10)), "yyyy-MM-dd'T'HH:mm:ss"),
-        latitud: baseLatitud + Math.random() * 0.01,
-        longitud: baseLongitud + Math.random() * 0.01,
-      },
-      {
-        id: "4",
-        tipo: "out",
-        timestamp: format(new Date(today.setHours(18, 3)), "yyyy-MM-dd'T'HH:mm:ss"),
-        latitud: baseLatitud + Math.random() * 0.01,
-        longitud: baseLongitud + Math.random() * 0.01,
-      },
-    ]
-  }
-
-  // Get current employee status based on attendance records
-  const getCurrentStatus = (): string => {
-    if (marcajes.length === 0) return "Sin registros hoy"
-
-    // Sort records by timestamp (most recent first)
-    const sortedMarcajes = [...marcajes].sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    )
-
-    // Last record determines current status
-    const lastMarcaje = sortedMarcajes[0]
-
-    switch (lastMarcaje.tipo) {
-      case "in":
-        return "Presente (ingresó)"
-      case "out":
-        return "Ausente (terminó su jornada)"
-      case "lunch-out":
-        return "En colación"
-      case "lunch-in":
-        return "Presente (regresó de colación)"
-      default:
-        return "Estado desconocido"
-    }
-  }
-
-  // Get color based on status
-  const getStatusColor = (status: string): string => {
-    if (status.includes("Presente")) return "#48BB78"
-    if (status.includes("Ausente")) return "#F56565"
-    if (status.includes("colación")) return "#ED8936"
-    return "#A0AEC0"
-  }
+    loadEmployeeData()
+  }, [employee.id, API_URL, showToast])
 
   // Format attendance record type
-  const formatTipoMarcaje = (tipo: string): string => {
+  const formatTipoMarcacion = (tipo: string): string => {
     switch (tipo) {
       case "in":
         return "Entrada"
@@ -224,68 +141,59 @@ const EmployeeDetailScreen = () => {
     }
   }
 
-  // Export employee history
-  const exportEmployeeHistory = async () => {
-    try {
-      showToast("Preparando exportación...", "info")
-
-      // Get date range for export (last month)
-      const today = new Date()
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-
-      const formattedStartDate = format(oneMonthAgo, "yyyy-MM-dd")
-      const formattedEndDate = format(today, "yyyy-MM-dd")
-
-      // Build URL for Excel export
-      const excelUrl = `${API_URL}/export/excel.php?usuario_id=${employee.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
-
-      if (Platform.OS === "web") {
-        try {
-          const response = await fetch(excelUrl)
-
-          if (!response.ok) {
-            const errorText = await response.text()
-            showToast(`Error: ${errorText || "No se pudo descargar el archivo"}`, "error")
-            return
-          }
-
-          const blob = await response.blob()
-          const downloadUrl = window.URL.createObjectURL(blob)
-          const a = document.createElement("a")
-          a.href = downloadUrl
-          a.download = `historial_${employee.name}.xlsx`
-          document.body.appendChild(a)
-          a.click()
-          a.remove()
-          window.URL.revokeObjectURL(downloadUrl)
-
-          showToast("Archivo descargado correctamente", "success")
-        } catch (error) {
-          console.error("Error downloading file:", error)
-          showToast("Error al descargar el archivo", "error")
-        }
-      } else {
-        // Native implementation using Linking
-        const Linking = require("react-native").Linking
-        const canOpen = await Linking.canOpenURL(excelUrl)
-
-        if (canOpen) {
-          await Linking.openURL(excelUrl)
-          showToast("Archivo abierto correctamente", "success")
-        } else {
-          showToast("No se puede abrir el enlace para descargar el archivo", "error")
-        }
+  // Get current employee status based on attendance records
+  const getCurrentStatus = (): string => {
+    // If we have employee details, use the status from there
+    if (employeeDetails?.status_employee) {
+      switch (employeeDetails.status_employee) {
+        case "present":
+          return "Presente"
+        case "absent":
+          return "Ausente"
+        case "lunch":
+          return "En colación"
+        case "late":
+          return "Tarde"
+        default:
+          return employeeDetails.status_employee
       }
-    } catch (error) {
-      console.error("Error exporting to Excel:", error)
-      showToast("No se pudo generar el archivo Excel", "error")
     }
+
+    // Fallback to calculating from marcaciones
+    if (marcaciones.length === 0) return "Sin registros hoy"
+
+    // Last record determines current status
+    const lastMarcacion = marcaciones[0]
+
+    switch (lastMarcacion.tipo) {
+      case "in":
+        return "Presente (ingresó)"
+      case "out":
+        return "Ausente (terminó su jornada)"
+      case "lunch-out":
+        return "En colación"
+      case "lunch-in":
+        return "Presente (regresó de colación)"
+      default:
+        return "Estado desconocido"
+    }
+  }
+
+  // Get color based on status
+  const getStatusColor = (status: string): string => {
+    if (status.includes("Presente")) return "#48BB78"
+    if (status.includes("Ausente")) return "#F56565"
+    if (status.includes("colación")) return "#ED8936"
+    if (status.includes("Tarde")) return "#ECC94B"
+    return "#A0AEC0"
   }
 
   // Current employee status
   const currentStatus = getCurrentStatus()
   const statusColor = getStatusColor(currentStatus)
+
+  // Use employee details from API if available, otherwise use route params
+  const displayEmployee:any = employeeDetails || employee
 
   return (
     <View style={styles.container}>
@@ -311,8 +219,8 @@ const EmployeeDetailScreen = () => {
                 <User stroke="#FFFFFF" width={40} height={40} />
               </View>
               <View style={styles.employeeNameContainer}>
-                <Text style={styles.employeeName}>{employee.name}</Text>
-                <Text style={styles.employeePosition}>{employee.position}</Text>
+                <Text style={styles.employeeName}>{displayEmployee.nombre  || ""}</Text>
+                <Text style={styles.employeePosition}>{displayEmployee.position || "Sin posición"}</Text>
               </View>
             </View>
 
@@ -326,18 +234,25 @@ const EmployeeDetailScreen = () => {
             <View style={styles.infoSection}>
               <View style={styles.infoItem}>
                 <Mail stroke="#4C51BF" width={16} height={16} />
-                <Text style={styles.infoText}>{employee.email}</Text>
+                <Text style={styles.infoText}>{displayEmployee.email || "Sin email"}</Text>
               </View>
 
               <View style={styles.infoItem}>
                 <Briefcase stroke="#4C51BF" width={16} height={16} />
-                <Text style={styles.infoText}>{employee.department}</Text>
+                <Text style={styles.infoText}>{displayEmployee.department || "Sin departamento"}</Text>
               </View>
 
-              {employee.phone && (
+              {displayEmployee.phone && (
                 <View style={styles.infoItem}>
                   <Phone stroke="#4C51BF" width={16} height={16} />
-                  <Text style={styles.infoText}>{employee.phone}</Text>
+                  <Text style={styles.infoText}>{displayEmployee.phone}</Text>
+                </View>
+              )}
+
+              {displayEmployee.rut && (
+                <View style={styles.infoItem}>
+                  <User stroke="#4C51BF" width={16} height={16} />
+                  <Text style={styles.infoText}>RUT: {displayEmployee.rut}</Text>
                 </View>
               )}
             </View>
@@ -366,30 +281,32 @@ const EmployeeDetailScreen = () => {
 
           {/* Today's attendance history */}
           <View style={styles.historyCard}>
-            <Text style={styles.sectionTitle}>Marcajes de Hoy</Text>
+            <Text style={styles.sectionTitle}>Marcaciones de Hoy</Text>
 
-            {marcajes.length === 0 ? (
+            {marcaciones.length === 0 ? (
               <Text style={styles.noRecordsText}>No hay registros para hoy</Text>
             ) : (
-              marcajes.map((marcaje) => (
-                <View key={marcaje.id} style={styles.marcajeItem}>
-                  <View style={styles.marcajeHeader}>
-                    <View style={styles.marcajeTypeContainer}>
+              marcaciones.map((marcacion) => (
+                <View key={marcacion.id} style={styles.marcacionItem}>
+                  <View style={styles.marcacionHeader}>
+                    <View style={styles.marcacionTypeContainer}>
                       <Clock stroke="#4C51BF" width={16} height={16} />
-                      <Text style={styles.marcajeType}>{formatTipoMarcaje(marcaje.tipo)}</Text>
+                      <Text style={styles.marcacionType}>{formatTipoMarcacion(marcacion.tipo)}</Text>
                     </View>
-                    <Text style={styles.marcajeTime}>{format(new Date(marcaje.timestamp), "HH:mm")}</Text>
+                    <Text style={styles.marcacionTime}>{format(new Date(marcacion.timestamp), "HH:mm")}</Text>
                   </View>
 
-                  <TouchableOpacity
-                    style={styles.locationContainer}
-                    onPress={() => openLocationInMap(marcaje.latitud, marcaje.longitud)}
-                  >
-                    <MapPin stroke="#718096" width={14} height={14} />
-                    <Text style={styles.locationText}>
-                      Lat: {marcaje.latitud.toFixed(6)}, Lon: {marcaje.longitud.toFixed(6)}
-                    </Text>
-                  </TouchableOpacity>
+                  {marcacion.latitud && marcacion.longitud && (
+                    <TouchableOpacity
+                      style={styles.locationContainer}
+                      onPress={() => openLocationInMap(marcacion.latitud, marcacion.longitud)}
+                    >
+                      <MapPin stroke="#718096" width={14} height={14} />
+                      <Text style={styles.locationText}>
+                        Lat: {Number(marcacion.latitud).toFixed(6)}, Lon: {Number(marcacion.longitud).toFixed(6)}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               ))
             )}
@@ -400,12 +317,12 @@ const EmployeeDetailScreen = () => {
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => {
-                if (employee.phone) {
+                if (displayEmployee.phone) {
                   if (Platform.OS === "web") {
-                    window.location.href = `tel:${employee.phone.replace(/\s+/g, "")}`
+                    window.location.href = `tel:${displayEmployee.phone.replace(/\s+/g, "")}`
                   } else {
                     const Linking = require("react-native").Linking
-                    Linking.openURL(`tel:${employee.phone.replace(/\s+/g, "")}`)
+                    Linking.openURL(`tel:${displayEmployee.phone.replace(/\s+/g, "")}`)
                   }
                 } else {
                   showToast("No hay número de teléfono disponible", "info")
@@ -420,23 +337,15 @@ const EmployeeDetailScreen = () => {
               style={[styles.actionButton, { backgroundColor: "#48BB78" }]}
               onPress={() => {
                 if (Platform.OS === "web") {
-                  window.location.href = `mailto:${employee.email}`
+                  window.location.href = `mailto:${displayEmployee.email}`
                 } else {
                   const Linking = require("react-native").Linking
-                  Linking.openURL(`mailto:${employee.email}`)
+                  Linking.openURL(`mailto:${displayEmployee.email}`)
                 }
               }}
             >
               <Mail stroke="#FFFFFF" width={20} height={20} />
               <Text style={styles.actionButtonText}>Email</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: "#ED8936" }]}
-              onPress={exportEmployeeHistory}
-            >
-              <Download stroke="#FFFFFF" width={20} height={20} />
-              <Text style={styles.actionButtonText}>Exportar</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -616,28 +525,28 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginVertical: 20,
   },
-  marcajeItem: {
+  marcacionItem: {
     borderBottomWidth: 1,
     borderBottomColor: "#E2E8F0",
     paddingVertical: 12,
   },
-  marcajeHeader: {
+  marcacionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
   },
-  marcajeTypeContainer: {
+  marcacionTypeContainer: {
     flexDirection: "row",
     alignItems: "center",
   },
-  marcajeType: {
+  marcacionType: {
     marginLeft: 8,
     fontSize: 16,
     fontWeight: "500",
     color: "#2D3748",
   },
-  marcajeTime: {
+  marcacionTime: {
     fontSize: 16,
     fontWeight: "bold",
     color: "#4C51BF",

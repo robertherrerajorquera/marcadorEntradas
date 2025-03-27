@@ -1,4 +1,4 @@
-"use client"
+
 
 import { useState, useEffect, useCallback } from "react"
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Platform } from "react-native"

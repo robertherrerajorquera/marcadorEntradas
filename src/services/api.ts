@@ -3,29 +3,20 @@
 import { Platform } from "react-native"
 
 // Get the appropriate API URL based on platform
-// const API_URL =
-//   Platform.OS === "android"
-//     ? "http://192.168.163.21/backendMarcadorEntradas/api"
-//     : Platform.OS === "ios"
-//       ? "http://192.168.163.21/backendMarcadorEntradas/api"
-//       : "/backendMarcadorEntradas/api"
+const getApiUrl = () => {
+  if (Platform.OS === "android") {
+    return "http://192.168.4.21/backendMarcadorEntradas/api"
+  } else if (Platform.OS === "ios") {
+    return "http://192.168.4.21/backendMarcadorEntradas/api"
+  } else {
+    // Para web, usar una URL relativa o absoluta según la configuración del servidor
+   // const baseUrl = window.location.origin
+    const baseUrl ="http://192.168.4.21";
+    return `${baseUrl}/backendMarcadorEntradas/api`;
+  }
+}
 
-
-      const getApiUrl = () => {
-        if (Platform.OS === "android") {
-          return "http://192.168.4.21/backendMarcadorEntradas/api"
-        } else if (Platform.OS === "ios") {
-          return "http://192.168.4.21/backendMarcadorEntradas/api"
-        } else {
-          // Para web, usar una URL relativa o absoluta según la configuración del servidor
-         // const baseUrl = window.location.origin
-          const baseUrl ="http://192.168.4.21";
-          return `${baseUrl}/backendMarcadorEntradas/api`;
-        }
-      }
-      
-      const API_URL = getApiUrl()
-
+const API_URL = getApiUrl()
 console.log(`Using API URL for ${Platform.OS}:`, API_URL)
 
 // Interfaces para las respuestas de la API
@@ -39,11 +30,12 @@ interface LoginResponse extends ApiResponse {
     id: string
     nombre: string
     email: string
-    role: string // Cambiado a string
+    role: string
     empresa_id?: string
     position?: string
     department?: string
     rut?: string
+    phone?: string
   }
   token?: string
 }
@@ -95,23 +87,23 @@ export const authService = {
     nombre: string,
     email: string,
     password: string,
-    role: string, // Cambiado a string
+    role: string,
     empresa_id?: string,
     position?: string,
     department?: string,
-    rut?: string, // Nuevo campo RUT
-    phone?: string, // Nuevo campo teléfono
+    rut?: string,
+    phone?: string,
   ): Promise<ApiResponse> {
     try {
       console.log("Enviando solicitud de registro a la API:", {
         nombre,
         email,
-        role, // Ahora enviamos "employer" o "employee"
+        role,
         empresa_id,
         position,
         department,
-        rut, // Incluir RUT en el log
-        phone, // Incluir teléfono en el log
+        rut,
+        phone,
       })
 
       // Verificar que la URL sea correcta
@@ -122,12 +114,12 @@ export const authService = {
         nombre,
         email,
         password,
-        role, // Ahora enviamos "employer" o "employee"
+        role,
         empresa_id,
         position,
         department,
-        rut, // Incluir RUT en la solicitud
-        phone, // Incluir teléfono en la solicitud
+        rut,
+        phone,
       }
 
       console.log("Cuerpo de la solicitud:", JSON.stringify(requestBody))
@@ -176,6 +168,13 @@ export const authService = {
       console.log("Código de estado HTTP:", response.status)
       const data = await safelyParseResponse(response)
       console.log("Respuesta de la API (login):", data)
+
+      // Asegurarse de que el rol sea un string
+      if (data.user && data.user.role !== undefined) {
+        data.user.role = String(data.user.role).trim()
+        console.log("Rol del usuario (normalizado):", data.user.role)
+      }
+
       return data
     } catch (error) {
       return handleFetchError(error)
@@ -208,6 +207,13 @@ export const authService = {
       console.log("Código de estado HTTP:", response.status)
       const data = await safelyParseResponse(response)
       console.log("Respuesta de la API (login con RUT):", data)
+
+      // Asegurarse de que el rol sea un string
+      if (data.user && data.user.role !== undefined) {
+        data.user.role = String(data.user.role).trim()
+        console.log("Rol del usuario (normalizado):", data.user.role)
+      }
+
       return data
     } catch (error) {
       return handleFetchError(error)
@@ -237,6 +243,13 @@ export const authService = {
       console.log("HTTP status code:", response.status)
       const data = await safelyParseResponse(response)
       console.log("API response (QR login):", data)
+
+      // Asegurarse de que el rol sea un string
+      if (data.user && data.user.role !== undefined) {
+        data.user.role = String(data.user.role).trim()
+        console.log("Rol del usuario (normalizado):", data.user.role)
+      }
+
       return data
     } catch (error) {
       return handleFetchError(error)
@@ -253,6 +266,7 @@ export const marcajesService = {
     latitud?: number,
     longitud?: number,
     foto_url?: string,
+    timestamp?: string, // Añadir parámetro timestamp
   ): Promise<MarcacionResponse> {
     try {
       console.log("Enviando solicitud de marcaje a la API:", {
@@ -272,6 +286,7 @@ export const marcajesService = {
         latitud,
         longitud,
         foto_url,
+        timestamp, // Incluir timestamp en la solicitud
       }
 
       console.log("Cuerpo de la solicitud:", JSON.stringify(requestBody))

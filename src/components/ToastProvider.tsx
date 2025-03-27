@@ -1,4 +1,4 @@
-"use client"
+
 
 // Un componente de toast mejorado para web y nativo (Android/iOS)
 import type React from "react"
