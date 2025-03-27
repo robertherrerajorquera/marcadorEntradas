@@ -1,51 +1,47 @@
-
+"use client"
 
 import type React from "react"
-import { createContext, useState, useContext, useEffect } from "react"
+import { createContext, useState, useContext, useEffect, type ReactNode } from "react"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import type { User, UserRole } from "../types"
-import { authService } from "../services/api"
 import { useSimpleToast } from "./SimpleToastContext"
 import { Platform } from "react-native"
 
-// Actualizar la interfaz User para incluir el teléfono
-// export interface User {
-//   id: string
-//   name: string
-//   email: string
-//   role: UserRole
-//   employerId?: string // For employees, reference to their employer
-//   empresaId: number // Numeric ID for the company
-//   status_employee?: string // Status of the employee (present, absent, etc.)
-//   phone?: string // Número de teléfono del usuario
-// }
+// Definir el tipo para el usuario
+interface User {
+  id: string
+  nombre: string
+  email: string
+  role: string
+  empresaId: string
+  empresaNombre?: string
+  position?: string
+  department?: string
+  status_employee?: string
+  rut?: string
+  phone?: string
+}
 
+// Definir el tipo para el contexto
 interface AuthContextType {
+  isAuthenticated: boolean
   user: User | null
-  loading: boolean
-  login: (email: string, password: string, isQrLogin?: boolean, qrUserData?: any) => Promise<boolean>
+  login: (email: string, password: string) => Promise<boolean>
+  loginWithRut: (rut: string) => Promise<boolean>
   logout: () => Promise<void>
-  register: (nombre: string, email: string, password: string, role: UserRole) => Promise<boolean>
+  loading: boolean
   API_URL: string
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  login: async () => false,
-  logout: async () => {},
-  register: async () => false,
-  API_URL: "",
-})
+// Crear el contexto
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export const useAuth = () => useContext(AuthContext)
-
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Proveedor del contexto
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const { showToast } = useSimpleToast()
 
-  // API URL for backend calls - Use appropriate URL based on platform
   const getApiUrl = () => {
     if (Platform.OS === "android") {
       return "http://192.168.4.21/backendMarcadorEntradas/api"
@@ -61,167 +57,210 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   const API_URL = getApiUrl()
 
-  console.log(`Auth context using API URL for ${Platform.OS}:`, API_URL)
-
-  // Load user from storage on app start
+  // Cargar el estado de autenticación al iniciar
   useEffect(() => {
-    const loadUser = async () => {
+    const loadAuthState = async () => {
       try {
-        console.log("Checking for saved user in AsyncStorage")
-        const userString = await AsyncStorage.getItem("user")
-
-        if (userString) {
-          const userData = JSON.parse(userString)
-          console.log("User found in AsyncStorage:", userData.email)
+        const userJson = await AsyncStorage.getItem("user")
+        if (userJson) {
+          const userData = JSON.parse(userJson)
           setUser(userData)
-        } else {
-          console.log("No user found in AsyncStorage")
+          setIsAuthenticated(true)
+          console.log("Usuario cargado desde AsyncStorage:", userData)
         }
       } catch (error) {
-        console.error("Failed to load user from storage", error)
+        console.error("Error al cargar el estado de autenticación:", error)
       } finally {
         setLoading(false)
       }
     }
 
-    loadUser()
+    loadAuthState()
   }, [])
 
-  // Actualizar la función login para incluir el teléfono en el mockUser
-  const login = async (
-    email: string,
-    password: string,
-    isQrLogin = false,
-    qrUserData: any = null,
-  ): Promise<boolean> => {
+  // Función para iniciar sesión
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setLoading(true)
     try {
-      setLoading(true)
-      console.log(`Starting ${isQrLogin ? "QR" : "standard"} login process for:`, email)
+      console.log("Iniciando login con:", { email })
 
-      // If it's a QR login and we have user data, skip the API call
-      let apiUser
-      if (isQrLogin && qrUserData) {
-        apiUser = qrUserData
-        console.log("Using QR provided user data:", apiUser)
-      } else {
-        // Call API to authenticate
-        const response = await authService.login(email, password)
+      console.log("Enviando solicitud de login con email a la API:", { email })
+      console.log("URL de login:", `${API_URL}/usuarios/login.php`)
 
-        if (response.error || !response.user) {
-          console.error("API response error:", response.error || "User not found")
-          showToast(response.message || "Invalid credentials", "error")
-          return false
+      const response = await fetch(`${API_URL}/usuarios/login.php`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      console.log("Código de estado HTTP:", response.status)
+
+      // Verificar si la respuesta es JSON válido
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text()
+        console.log("Respuesta en texto plano:", text)
+        throw new Error("INVALID_JSON_RESPONSE")
+      }
+
+      const data = await response.json()
+      console.log("Respuesta de la API (login):", data)
+
+      if (response.ok && data.user) {
+        // Guardar el usuario en el estado y AsyncStorage
+        const userData: User = {
+          id: data.user.id,
+          nombre: data.user.nombre,
+          email: data.user.email,
+          role: data.user.role,
+          empresaId: data.user.empresaId,
+          empresaNombre: data.user.empresaNombre,
+          position: data.user.position,
+          department: data.user.department,
+          status_employee: data.user.status_employee,
+          rut: data.user.rut,
+          phone: data.user.phone,
         }
 
-        apiUser = response.user
-        console.log("Login successful in API, processing user data")
-      }
+        setUser(userData)
+        setIsAuthenticated(true)
+        await AsyncStorage.setItem("user", JSON.stringify(userData))
 
-      // Make sure the role is exactly "employer" or "employee"
-      let userRole: UserRole = "employee" // Default value
-
-      if (apiUser.role === "employer") {
-        userRole = "employer"
-      } else if (apiUser.role === "employee") {
-        userRole = "employee"
+        console.log("Login exitoso, usuario guardado:", userData)
+        return true
       } else {
-        console.warn(`Unknown role: ${apiUser.role}, using "employee" as default`)
-      }
-
-      console.log("User role:", userRole)
-
-      const mockUser: User = {
-        id: apiUser.id || "1",
-        nombre: apiUser.nombre || "Test User",
-        email,
-        role: userRole,
-        empresaId: Number(apiUser.empresa_id || "1"),
-        status_employee: "present",
-        rut: "",
-        phone: apiUser.phone || "", // Incluir el teléfono
-        ...(userRole === "employee" && { employerId: apiUser.empresa_id || "2" }),
-      }
-
-      console.log("Saving user to AsyncStorage:", mockUser)
-      await AsyncStorage.setItem("user", JSON.stringify(mockUser))
-      setUser(mockUser)
-      showToast("Login successful", "success")
-      return true
-    } catch (error) {
-      console.error("Login failed", error)
-      showToast("Login error. Please try again.", "error")
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Logout function
-  const logout = async () => {
-    try {
-      console.log("Logging out")
-      setLoading(true)
-
-      // First set user to null to prevent any navigation issues
-      setUser(null)
-
-      // Then remove from storage
-      await AsyncStorage.removeItem("user")
-
-      showToast("Logged out successfully", "info")
-    } catch (error) {
-      console.error("Logout failed", error)
-      showToast("Error logging out", "error")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Register function
-  const register = async (nombre: string, email: string, password: string, role: UserRole): Promise<boolean> => {
-    try {
-      setLoading(true)
-      console.log("Starting registration process for:", email)
-
-      // Call API to register
-      const response = await authService.register(nombre, email, password, role)
-
-      if (response.error) {
-        console.error("API response error:", response.error)
-        showToast(response.message || "Registration error", "error")
+        console.error("Error en el login (API):", data.error)
+        showToast(data.message || "Credenciales incorrectas", "error")
         return false
       }
+    } catch (error) {
+      console.error("Error en el login:", error)
 
-      console.log("Registration successful in API, creating local user")
-
-      const mockUser: User = {
-        id: Date.now().toString(),
-        nombre,
-        email,
-        role,
-        empresaId: role === "employer" ? Number(Date.now().toString()) : 1,
-        status_employee: "present",
-        rut:"",
-        phone: "",
-        ...(role === "employee" && { employerId: "2" }),
+      if (error instanceof Error) {
+        if (error.message === "INVALID_JSON_RESPONSE") {
+          showToast("Error en la respuesta del servidor. No es un JSON válido.", "error")
+        } else {
+          showToast("Error al iniciar sesión. Intente nuevamente.", "error")
+        }
+      } else {
+        showToast("Error desconocido al iniciar sesión", "error")
       }
 
-      console.log("Saving user to AsyncStorage")
-      await AsyncStorage.setItem("user", JSON.stringify(mockUser))
-      setUser(mockUser)
-      showToast("Registration successful", "success")
-      return true
-    } catch (error) {
-      console.error("Registration failed", error)
-      showToast("Registration error", "error")
       return false
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <AuthContext.Provider value={{ user, loading, login, logout, register, API_URL }}>{children}</AuthContext.Provider>
-  )
+  // Función para iniciar sesión con RUT (para QR)
+  const loginWithRut = async (rut: string): Promise<boolean> => {
+    setLoading(true)
+    try {
+      console.log("Enviando solicitud de login con RUT a la API:", { isQrLogin: true, rut })
+      console.log("URL de login con RUT:", `${API_URL}/usuarios/login_rut_qr.php`)
+
+      const response = await fetch(`${API_URL}/usuarios/login_rut_qr.php`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ isQrLogin: true, rut }),
+      })
+
+      console.log("Código de estado HTTP:", response.status)
+
+      // Verificar si la respuesta es JSON válido
+      const contentType = response.headers.get("content-type")
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text()
+        console.log("Respuesta en texto plano:", text)
+        throw new Error("INVALID_JSON_RESPONSE")
+      }
+
+      const data = await response.json()
+      console.log("Respuesta de la API (login con RUT):", data)
+
+      if (response.ok && data.user) {
+        // Guardar el usuario en el estado y AsyncStorage
+        const userData: User = {
+          id: data.user.id,
+          nombre: data.user.nombre,
+          email: data.user.email,
+          role: data.user.role,
+          empresaId: data.user.empresaId,
+          empresaNombre: data.user.empresaNombre,
+          position: data.user.position,
+          department: data.user.department,
+          status_employee: data.user.status_employee,
+          rut: data.user.rut,
+          phone: data.user.phone,
+        }
+
+        setUser(userData)
+        setIsAuthenticated(true)
+        await AsyncStorage.setItem("user", JSON.stringify(userData))
+
+        console.log("Login con RUT exitoso, usuario guardado:", userData)
+        return true
+      } else {
+        console.error("Error en el login con RUN:", data.error)
+        showToast("Usuario no encontrado con el RUN escaneado", "error")
+        return false
+      }
+    } catch (error) {
+      console.error("Error en el login con RUT:", error)
+
+      if (error instanceof Error) {
+        if (error.message === "INVALID_JSON_RESPONSE") {
+          showToast("Error en la respuesta del servidor. No es un JSON válido.", "error")
+        } else {
+          showToast("Error al iniciar sesión con RUT. Intente nuevamente.", "error")
+        }
+      } else {
+        showToast("Error desconocido al iniciar sesión con RUT", "error")
+      }
+
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Función para cerrar sesión
+  const logout = async (): Promise<void> => {
+    try {
+      await AsyncStorage.removeItem("user")
+      setUser(null)
+      setIsAuthenticated(false)
+      console.log("Sesión cerrada correctamente")
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error)
+      throw error
+    }
+  }
+
+  // Valor del contexto
+  const value = {
+    isAuthenticated,
+    user,
+    login,
+    loginWithRut,
+    logout,
+    loading,
+    API_URL,
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
+
+// Hook personalizado para usar el contexto
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error("useAuth debe ser usado dentro de un AuthProvider")
+  }
+  return context
 }
 

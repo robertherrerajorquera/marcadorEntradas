@@ -1,4 +1,4 @@
-
+"use client"
 
 import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native"
@@ -48,6 +48,7 @@ const EmployerHomeScreen = () => {
   const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingWeekly, setIsLoadingWeekly] = useState(true)
+  const [isLoadingAvgHours, setIsLoadingAvgHours] = useState(true)
   const navigation = useNavigation()
   const { resetInactivityTimer } = useSession()
   const { user, API_URL } = useAuth()
@@ -72,7 +73,7 @@ const EmployerHomeScreen = () => {
         console.log("Cargando datos de empleados para empresa ID:", user.empresaId)
 
         // Obtener lista de empleados
-        const response:any = await empleadosService.obtenerEmpleadosPorEmpresa(user.empresaId.toString())
+        const response: any = await empleadosService.obtenerEmpleadosPorEmpresa(user.empresaId.toString())
 
         if (response.error) {
           console.error("Error al cargar empleados:", response.error)
@@ -84,7 +85,7 @@ const EmployerHomeScreen = () => {
           console.log(`Se encontraron ${response.records.length} empleados`)
 
           // Procesar empleados y calcular estadísticas
-          const employeeList = response.records.map((emp:any) => ({
+          const employeeList = response.records.map((emp: any) => ({
             id: emp.id,
             nombre: emp.nombre,
             position: emp.position || "Sin asignar",
@@ -95,10 +96,10 @@ const EmployerHomeScreen = () => {
           setEmployees(employeeList)
 
           // Calcular estadísticas
-          const presentCount = employeeList.filter((e:any) => e.status_employee === "present").length
-          const absentCount = employeeList.filter((e:any) => e.status_employee === "absent").length
-          const lunchCount = employeeList.filter((e:any) => e.status_employee === "lunch").length
-          const lateCount = employeeList.filter((e:any) => e.status_employee === "late").length
+          const presentCount = employeeList.filter((e: any) => e.status_employee === "present").length
+          const absentCount = employeeList.filter((e: any) => e.status_employee === "absent").length
+          const lunchCount = employeeList.filter((e: any) => e.status_employee === "lunch").length
+          const lateCount = employeeList.filter((e: any) => e.status_employee === "late").length
 
           setStats({
             totalEmployees: employeeList.length,
@@ -158,7 +159,7 @@ const EmployerHomeScreen = () => {
 
           try {
             // Obtener marcajes para este día
-            const response:any = await marcajesService.obtenerHistorial(
+            const response: any = await marcajesService.obtenerHistorial(
               user.empresaId.toString(),
               formattedDate,
               formattedDate,
@@ -167,7 +168,7 @@ const EmployerHomeScreen = () => {
             if (response.records && Array.isArray(response.records)) {
               // Contar marcajes de entrada únicos por usuario
               const uniqueUserIds = new Set()
-              response.records.forEach((record:any) => {
+              response.records.forEach((record: any) => {
                 if (record.tipo === "in") {
                   uniqueUserIds.add(record.usuario_id)
                 }
@@ -179,7 +180,7 @@ const EmployerHomeScreen = () => {
               const userWorkHours = new Map()
 
               // Agrupar marcajes por usuario
-              response.records.forEach((record:any) => {
+              response.records.forEach((record: any) => {
                 const userId = record.usuario_id
                 if (!userWorkHours.has(userId)) {
                   userWorkHours.set(userId, { inTime: null, outTime: null })
@@ -237,14 +238,6 @@ const EmployerHomeScreen = () => {
         }
 
         setWeeklyData(weekDays)
-
-        // Calcular promedio de horas trabajadas
-        if (totalWorkDays > 0) {
-          const average = totalWorkHours / totalWorkDays
-          setAverageWorkHours(Number.parseFloat(average.toFixed(1)))
-        } else {
-          setAverageWorkHours(0)
-        }
       } catch (error) {
         console.error("Error al cargar datos semanales:", error)
       } finally {
@@ -254,6 +247,48 @@ const EmployerHomeScreen = () => {
 
     loadWeeklyData()
   }, [user, showToast])
+
+  // Cargar promedio de horas trabajadas desde el nuevo endpoint
+  useEffect(() => {
+    const loadAverageHours = async () => {
+      if (!user?.empresaId) return
+
+      setIsLoadingAvgHours(true)
+      try {
+        console.log("Cargando promedio de horas para empresa ID:", user.empresaId)
+
+        const response = await fetch(`${API_URL}/marcajes/promedio_horas.php?empresa_id=${user.empresaId}`)
+
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`)
+        }
+
+        const data = await response.json()
+        console.log("Respuesta de promedio de horas:", data)
+
+        if (data && data.promedio_horas !== undefined) {
+          setAverageWorkHours(data.promedio_horas)
+        } else {
+          console.warn("No se pudo obtener el promedio de horas trabajadas")
+          setAverageWorkHours(0)
+        }
+      } catch (error) {
+        console.error("Error al cargar promedio de horas:", error)
+        // Mantener el cálculo anterior como respaldo
+        const totalWorkHours = weeklyData.reduce((total, day) => total + day.count, 0)
+        const totalDays = weeklyData.filter((day) => day.count > 0).length
+        if (totalDays > 0) {
+          setAverageWorkHours(Number.parseFloat((totalWorkHours / totalDays).toFixed(1)))
+        } else {
+          setAverageWorkHours(0)
+        }
+      } finally {
+        setIsLoadingAvgHours(false)
+      }
+    }
+
+    loadAverageHours()
+  }, [user?.empresaId, API_URL, weeklyData])
 
   const getStatusText = (status: string) => {
     switch (status) {
@@ -423,7 +458,11 @@ const EmployerHomeScreen = () => {
             <View style={styles.weekStats}>
               <View style={styles.weekStatItem}>
                 <Text style={styles.weekStatLabel}>Promedio de horas:</Text>
-                <Text style={styles.weekStatValue}>{averageWorkHours > 0 ? `${averageWorkHours} hrs` : "N/A"}</Text>
+                {isLoadingAvgHours ? (
+                  <ActivityIndicator size="small" color="#4C51BF" />
+                ) : (
+                  <Text style={styles.weekStatValue}>{averageWorkHours > 0 ? `${averageWorkHours} hrs` : "N/A"}</Text>
+                )}
               </View>
 
               <View style={styles.weekStatItem}>

@@ -1,9 +1,10 @@
 "use client"
 import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from "react-native"
-import { ArrowLeft, MapPin, Clock, User, Phone, Mail, Briefcase } from "react-native-feather"
+import { ArrowLeft, MapPin, Clock, User, Phone, Mail, Briefcase, Edit, Calendar } from "react-native-feather"
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native"
 import { format } from "date-fns"
+import { es } from "date-fns/locale"
 import { useAuth } from "../../contexts/AuthContext"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import type { EmployeeStackParamList } from "../../navigation/EmployerTabs"
@@ -49,6 +50,7 @@ const EmployeeDetailScreen = () => {
   const [marcaciones, setMarcaciones] = useState<Marcacion[]>([])
   const [lastLocation, setLastLocation] = useState<{ latitud: number; longitud: number } | null>(null)
   const [employeeDetails, setEmployeeDetails] = useState<EmployeeDetails | null>(null)
+  const [loadingMarcajes, setLoadingMarcajes] = useState(true)
 
   // Load employee details and attendance records
   useEffect(() => {
@@ -68,14 +70,37 @@ const EmployeeDetailScreen = () => {
           console.error("Error loading employee details:", detalleData.error)
           showToast("No se pudieron cargar los detalles del empleado", "error")
         }
+      } catch (error) {
+        console.error("Error loading employee data:", error)
+        showToast("Error al cargar datos del empleado", "error")
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-        // Fetch today's attendance records
+    loadEmployeeData()
+  }, [employee.id, API_URL, showToast])
+
+  // Cargar marcajes del empleado
+  useEffect(() => {
+    const loadMarcajes = async () => {
+      if (!employee?.id) return
+
+      setLoadingMarcajes(true)
+      try {
+        // Obtener marcajes del día actual
         console.log("Solicitando marcajes para usuario ID:", employee.id)
+
         const marcajesResponse = await fetch(`${API_URL}/marcajes/hoy.php?usuario_id=${employee.id}`)
+
+        if (!marcajesResponse.ok) {
+          throw new Error(`Error HTTP: ${marcajesResponse.status}`)
+        }
+
         const marcajesData = await marcajesResponse.json()
         console.log("Respuesta de marcajes:", marcajesData)
 
-        if (marcajesResponse.ok && marcajesData.records) {
+        if (marcajesData.records && Array.isArray(marcajesData.records)) {
           console.log("Número de marcajes encontrados:", marcajesData.records.length)
 
           // Sort by timestamp (most recent first)
@@ -98,14 +123,14 @@ const EmployeeDetailScreen = () => {
           setMarcaciones([])
         }
       } catch (error) {
-        console.error("Error loading employee data:", error)
-        showToast("Error al cargar datos del empleado", "error")
+        console.error("Error loading marcajes:", error)
+        showToast("Error al cargar marcajes del empleado", "error")
       } finally {
-        setIsLoading(false)
+        setLoadingMarcajes(false)
       }
     }
 
-    loadEmployeeData()
+    loadMarcajes()
   }, [employee.id, API_URL, showToast])
 
   // Format attendance record type
@@ -139,6 +164,12 @@ const EmployeeDetailScreen = () => {
         showToast("No se pudo abrir el mapa", "error")
       })
     }
+  }
+
+  // Manejar edición de perfil del empleado
+  const handleEditEmployee = () => {
+    // @ts-ignore - Ignorando verificación de tipos para navegación
+    navigation.navigate("EditEmployee", { employee: employeeDetails || employee })
   }
 
   // Get current employee status based on attendance records
@@ -193,7 +224,13 @@ const EmployeeDetailScreen = () => {
   const statusColor = getStatusColor(currentStatus)
 
   // Use employee details from API if available, otherwise use route params
-  const displayEmployee:any = employeeDetails || employee
+  const displayEmployee = employeeDetails || employee
+
+  // Formatear fecha para mostrar
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString)
+    return format(date, "dd 'de' MMMM, yyyy", { locale: es })
+  }
 
   return (
     <View style={styles.container}>
@@ -219,7 +256,7 @@ const EmployeeDetailScreen = () => {
                 <User stroke="#FFFFFF" width={40} height={40} />
               </View>
               <View style={styles.employeeNameContainer}>
-                <Text style={styles.employeeName}>{displayEmployee.nombre  || ""}</Text>
+                <Text style={styles.employeeName}>{displayEmployee.nombre || displayEmployee.name || ""}</Text>
                 <Text style={styles.employeePosition}>{displayEmployee.position || "Sin posición"}</Text>
               </View>
             </View>
@@ -279,11 +316,22 @@ const EmployeeDetailScreen = () => {
             </View>
           )}
 
-          {/* Today's attendance history */}
+          {/* Marcajes section */}
           <View style={styles.historyCard}>
-            <Text style={styles.sectionTitle}>Marcaciones de Hoy</Text>
+            <View style={styles.historyHeader}>
+              <Text style={styles.sectionTitle}>Marcajes</Text>
+              <View style={styles.dateContainer}>
+                <Calendar stroke="#718096" width={14} height={14} />
+                <Text style={styles.dateText}>{format(new Date(), "dd 'de' MMMM", { locale: es })}</Text>
+              </View>
+            </View>
 
-            {marcaciones.length === 0 ? (
+            {loadingMarcajes ? (
+              <View style={styles.marcajesLoadingContainer}>
+                <ActivityIndicator size="small" color="#4C51BF" />
+                <Text style={styles.marcajesLoadingText}>Cargando marcajes...</Text>
+              </View>
+            ) : marcaciones.length === 0 ? (
               <Text style={styles.noRecordsText}>No hay registros para hoy</Text>
             ) : (
               marcaciones.map((marcacion) => (
@@ -346,6 +394,14 @@ const EmployeeDetailScreen = () => {
             >
               <Mail stroke="#FFFFFF" width={20} height={20} />
               <Text style={styles.actionButtonText}>Email</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: "#4C51BF" }]}
+              onPress={handleEditEmployee}
+            >
+              <Edit stroke="#FFFFFF" width={20} height={20} />
+              <Text style={styles.actionButtonText}>Editar</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -518,6 +574,34 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  historyHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  dateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EDF2F7",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  dateText: {
+    fontSize: 12,
+    color: "#718096",
+    marginLeft: 5,
+  },
+  marcajesLoadingContainer: {
+    alignItems: "center",
+    paddingVertical: 20,
+  },
+  marcajesLoadingText: {
+    marginTop: 8,
+    color: "#718096",
+    fontSize: 14,
   },
   noRecordsText: {
     textAlign: "center",

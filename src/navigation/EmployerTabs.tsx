@@ -1,84 +1,82 @@
+"use client"
+
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { createNativeStackNavigator } from "@react-navigation/native-stack"
-import { Users, Clock, User } from "react-native-feather"
+import { Home, Users, User } from "react-native-feather"
 import EmployerHomeScreen from "../screens/employer/EmployerHomeScreen"
 import EmployerEmployeesScreen from "../screens/employer/EmployerEmployeesScreen"
-import EmployerProfileScreen from "../screens/employer/EmployerProfileScreen"
 import EmployeeDetailScreen from "../screens/employer/EmployeeDetailScreen"
-
-// Define the types for the employee stack navigator
-export type EmployeeStackParamList = {
-  EmployeesList: undefined
-  EmployeeDetail: {
-    employee: {
-      id: string
-      name: string
-      email: string
-      position: string
-      department: string
-      status_employee: string
-      phone?: string
-    }
-  }
-}
+import EmployerProfileScreen from "../screens/employer/EmployerProfileScreen"
+import EmployerEditEmployeeScreen from "../screens/employer/EmployerEditEmployeeScreen"
+import { createNativeStackNavigator } from "@react-navigation/native-stack"
 
 const Tab = createBottomTabNavigator()
-const Stack = createNativeStackNavigator<EmployeeStackParamList>()
+const EmployeeStack = createNativeStackNavigator()
+const ProfileStack = createNativeStackNavigator()
 
-// Componente para la pestaña de Empleados con navegación anidada
-const EmployeesStack = () => {
+// Tipos para los parámetros de navegación
+export type EmployeeStackParamList = {
+  EmployeesList: undefined
+  EmployeeDetail: { employee: any }
+  EditEmployee: { employee: any }
+}
+
+// Nested stack para la sección de Empleados
+const EmployeeStackScreen = () => {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="EmployeesList" component={EmployerEmployeesScreen} />
-      <Stack.Screen name="EmployeeDetail" component={EmployeeDetailScreen} />
-    </Stack.Navigator>
+    <EmployeeStack.Navigator screenOptions={{ headerShown: false }}>
+      <EmployeeStack.Screen name="EmployeesList" component={EmployerEmployeesScreen} />
+      <EmployeeStack.Screen name="EmployeeDetail" component={EmployeeDetailScreen} />
+      <EmployeeStack.Screen name="EditEmployee" component={EmployerEditEmployeeScreen} />
+    </EmployeeStack.Navigator>
+  )
+}
+
+// Nested stack para la sección de Perfil
+const ProfileStackScreen = () => {
+  return (
+    <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStack.Screen name="Profile" component={EmployerProfileScreen} />
+    </ProfileStack.Navigator>
   )
 }
 
 const EmployerTabs = () => {
   return (
     <Tab.Navigator
+      initialRouteName="Home"
       screenOptions={{
         tabBarActiveTintColor: "#4C51BF",
         tabBarInactiveTintColor: "#A0AEC0",
         tabBarStyle: {
-          borderTopWidth: 1,
+          backgroundColor: "#FFFFFF",
           borderTopColor: "#E2E8F0",
           paddingTop: 5,
           paddingBottom: 5,
-          height: 60,
         },
-        headerStyle: {
-          backgroundColor: "#4C51BF",
-        },
-        headerTintColor: "#FFFFFF",
-        headerTitleStyle: {
-          fontWeight: "bold",
-        },
+        headerShown: false,
       }}
     >
       <Tab.Screen
         name="Home"
         component={EmployerHomeScreen}
         options={{
-          title: "Resumen",
-          tabBarIcon: ({ color, size }) => <Clock stroke={color} width={size} height={size} />,
+          tabBarLabel: "Inicio",
+          tabBarIcon: ({ color, size }) => <Home stroke={color} width={size} height={size} />,
         }}
       />
       <Tab.Screen
         name="Employees"
-        component={EmployeesStack}
+        component={EmployeeStackScreen}
         options={{
-          title: "Empleados",
+          tabBarLabel: "Empleados",
           tabBarIcon: ({ color, size }) => <Users stroke={color} width={size} height={size} />,
-          headerShown: false,
         }}
       />
       <Tab.Screen
-        name="Profile"
-        component={EmployerProfileScreen}
+        name="UserProfile"
+        component={ProfileStackScreen}
         options={{
-          title: "Perfil",
+          tabBarLabel: "Perfil",
           tabBarIcon: ({ color, size }) => <User stroke={color} width={size} height={size} />,
         }}
       />

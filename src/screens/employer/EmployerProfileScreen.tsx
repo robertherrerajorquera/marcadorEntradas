@@ -1,94 +1,205 @@
+"use client"
 
-
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Platform } from "react-native"
-import { User, LogOut, Settings, Bell, Shield, Users, Briefcase } from "react-native-feather"
+import React, { useState, useEffect } from "react"
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native"
+import { User, Mail, Phone, Briefcase, MapPin, Edit, LogOut } from "react-native-feather"
 import { useAuth } from "../../contexts/AuthContext"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
+import { useNavigation } from "@react-navigation/native"
+import {Employee as usuario} from "../../types/index"
+
+// Tipo para los datos del perfil
+interface PerfilData {
+  id: string
+  nombre: string
+  email: string
+  role: string
+  position?: string
+  department?: string
+  rut?: string
+  phone?: string
+  empresa: {
+    id: string
+    nombre: string
+    direccion?: string
+    telefono?: string
+    email?: string
+  }
+}
 
 const EmployerProfileScreen = () => {
-  const { user, logout } = useAuth()
-  const { showToast } = useSimpleToast()
+  const { logout, API_URL, user } = useAuth() 
 
+  const { showToast } = useSimpleToast()
+  const navigation = useNavigation()
+  const [isLoading, setIsLoading] = useState(true)
+  const [perfilData, setPerfilData] = useState<PerfilData | null>(null)
+
+  // Cargar datos del perfil
+  useEffect(() => {
+    const cargarPerfil = async () => {
+      if (!user?.id) return
+
+      setIsLoading(true)
+      try {
+        console.log("Cargando perfil del empleador ID:", user.id)
+
+        const response = await fetch(`${API_URL}/usuarios/perfil.php?id=${user.id}`)
+        const data = await response.json()
+
+        console.log("Respuesta de perfil:", data)
+
+        if (response.ok) {
+          setPerfilData(data)
+        } else {
+          console.error("Error al cargar perfil:", data.error)
+          showToast("No se pudo cargar la información del perfil", "error")
+        }
+      } catch (error) {
+        console.error("Error al cargar perfil:", error)
+        showToast("Error al cargar datos del perfil", "error")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    cargarPerfil()
+  }, [user?.id, API_URL, showToast])
+
+  // Manejar cierre de sesión
   const handleLogout = async () => {
     try {
-      // Show confirmation dialog on web
-      if (Platform.OS === "web") {
-        if (!window.confirm("¿Estás seguro que deseas cerrar sesión?")) {
-          return
-        }
-      }
-
-      showToast("Cerrando sesión...", "info")
       await logout()
+      // La navegación se maneja en el contexto de autenticación
     } catch (error) {
       console.error("Error al cerrar sesión:", error)
       showToast("Error al cerrar sesión", "error")
     }
   }
 
+  // Manejar edición de perfil
+  const handleEditProfile = () => {
+    // @ts-ignore - Ignorando verificación de tipos para navegación
+    navigation.navigate("EditProfile")
+  }
+
+  // Datos a mostrar (de la API o como fallback del contexto)
+  const displayData = perfilData || {
+    id: user?.id || "",
+    nombre: user?.nombre || "",
+    email: user?.email || "",
+    role: user?.role || "",
+    position:  "",
+    department:  "",
+    rut: user?.rut || "",
+    phone: user?.phone || "",
+    empresa: {
+      id: user?.empresaId || "",
+      nombre:  "",
+      direccion: "",
+      telefono: "",
+      email: ""
+    },
+  }
+
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.profileImageContainer}>
-          <Image source={{ uri: "https://via.placeholder.com/150" }} style={styles.profileImage} />
-        </View>
-        <Text style={styles.nombre}>{user?.nombre}</Text>
-        <Text style={styles.email}>{user?.email}</Text>
-        <Text style={styles.role}>Empleador</Text>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Información de la Empresa</Text>
-
-        <View style={styles.infoItem}>
-          <Briefcase stroke="#4C51BF" width={20} height={20} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>Nombre de la Empresa</Text>
-            <Text style={styles.infoValue}>Empresa Demo S.A.</Text>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollContainer}>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4C51BF" />
+            <Text style={styles.loadingText}>Cargando perfil...</Text>
           </View>
-        </View>
+        ) : (
+          <>
+            {/* Tarjeta de perfil personal */}
+            <View style={styles.profileCard}>
+              <View style={styles.avatarContainer}>
+                <User stroke="#FFFFFF" width={40} height={40} />
+              </View>
 
-        <View style={styles.infoItem}>
-          <Users stroke="#4C51BF" width={20} height={20} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>Empleados</Text>
-            <Text style={styles.infoValue}>8 empleados</Text>
-          </View>
-        </View>
+              <Text style={styles.userName}>{displayData.nombre}</Text>
+              <Text style={styles.userRole}>{displayData.role === "employer" ? "Empleador" : "Administrador"}</Text>
 
-        <View style={styles.infoItem}>
-          <User stroke="#4C51BF" width={20} height={20} />
-          <View style={styles.infoContent}>
-            <Text style={styles.infoLabel}>ID de Empleador</Text>
-            <Text style={styles.infoValue}>{user?.id}</Text>
-          </View>
-        </View>
-      </View>
+              <View style={styles.infoSection}>
+                <View style={styles.infoItem}>
+                  <Mail stroke="#4C51BF" width={20} height={20} />
+                  <Text style={styles.infoText}>{displayData.email}</Text>
+                </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Configuración</Text>
+                {displayData.phone && (
+                  <View style={styles.infoItem}>
+                    <Phone stroke="#4C51BF" width={20} height={20} />
+                    <Text style={styles.infoText}>{displayData.phone}</Text>
+                  </View>
+                )}
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Bell stroke="#4A5568" width={20} height={20} />
-          <Text style={styles.menuItemText}>Notificaciones</Text>
-        </TouchableOpacity>
+                {displayData.position && (
+                  <View style={styles.infoItem}>
+                    <Briefcase stroke="#4C51BF" width={20} height={20} />
+                    <Text style={styles.infoText}>{displayData.position}</Text>
+                  </View>
+                )}
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Shield stroke="#4A5568" width={20} height={20} />
-          <Text style={styles.menuItemText}>Seguridad y Acceso</Text>
-        </TouchableOpacity>
+                {displayData.rut && (
+                  <View style={styles.infoItem}>
+                    <User stroke="#4C51BF" width={20} height={20} />
+                    <Text style={styles.infoText}>RUT: {displayData.rut}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Settings stroke="#4A5568" width={20} height={20} />
-          <Text style={styles.menuItemText}>Configuración de la Empresa</Text>
-        </TouchableOpacity>
-      </View>
+            {/* Tarjeta de información de la empresa */}
+            <View style={styles.companyCard}>
+              <Text style={styles.sectionTitle}>Información de la Empresa</Text>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <LogOut stroke="#FFFFFF" width={20} height={20} />
-        <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
-      </TouchableOpacity>
-    </ScrollView>
+              <View style={styles.infoItem}>
+                <Briefcase stroke="#4C51BF" width={20} height={20} />
+                <Text style={styles.infoText}>{displayData.empresa.nombre}</Text>
+              </View>
+
+              {displayData.empresa.direccion && (
+                <View style={styles.infoItem}>
+                  <MapPin stroke="#4C51BF" width={20} height={20} />
+                  <Text style={styles.infoText}>{displayData.empresa.direccion}</Text>
+                </View>
+              )}
+
+              {displayData.empresa.telefono && (
+                <View style={styles.infoItem}>
+                  <Phone stroke="#4C51BF" width={20} height={20} />
+                  <Text style={styles.infoText}>{displayData.empresa.telefono}</Text>
+                </View>
+              )}
+
+              {displayData.empresa.email && (
+                <View style={styles.infoItem}>
+                  <Mail stroke="#4C51BF" width={20} height={20} />
+                  <Text style={styles.infoText}>{displayData.empresa.email}</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Botones de acción */}
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity
+                style={[styles.actionButton, { backgroundColor: "#4C51BF" }]}
+                onPress={handleEditProfile}
+              >
+                <Edit stroke="#FFFFFF" width={20} height={20} />
+                <Text style={styles.actionButtonText}>Editar Perfil</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#F56565" }]} onPress={handleLogout}>
+                <LogOut stroke="#FFFFFF" width={20} height={20} />
+                <Text style={styles.actionButtonText}>Cerrar Sesión</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+      </ScrollView>
+    </View>
   )
 }
 
@@ -97,53 +208,74 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F7FAFC",
   },
-  header: {
-    backgroundColor: "#FFFFFF",
-    padding: 20,
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
+  scrollContainer: {
+    flex: 1,
+    padding: 16,
   },
-  profileImageContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#E2E8F0",
+  loadingContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 15,
-    overflow: "hidden",
+    minHeight: 300,
   },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  loadingText: {
+    marginTop: 10,
+    color: "#4A5568",
+    fontSize: 16,
   },
-  nombre: {
+  profileCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  avatarContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#4C51BF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  userName: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#2D3748",
+    marginBottom: 4,
   },
-  email: {
+  userRole: {
+    fontSize: 16,
+    color: "#718096",
+    marginBottom: 16,
+  },
+  infoSection: {
+    width: "100%",
+    borderTopWidth: 1,
+    borderTopColor: "#E2E8F0",
+    paddingTop: 16,
+  },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  infoText: {
+    marginLeft: 12,
     fontSize: 16,
     color: "#4A5568",
-    marginTop: 5,
   },
-  role: {
-    fontSize: 14,
-    color: "#FFFFFF",
-    backgroundColor: "#4C51BF",
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 15,
-    marginTop: 10,
-  },
-  section: {
+  companyCard: {
     backgroundColor: "#FFFFFF",
+    borderRadius: 12,
     padding: 20,
-    marginTop: 20,
-    borderRadius: 10,
-    marginHorizontal: 15,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -154,52 +286,26 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     color: "#2D3748",
-    marginBottom: 15,
+    marginBottom: 16,
   },
-  infoItem: {
+  actionsContainer: {
     flexDirection: "row",
-    marginBottom: 15,
+    justifyContent: "space-between",
+    marginBottom: 30,
   },
-  infoContent: {
-    marginLeft: 15,
+  actionButton: {
     flex: 1,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: "#718096",
-  },
-  infoValue: {
-    fontSize: 16,
-    color: "#2D3748",
-    fontWeight: "500",
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
-  },
-  menuItemText: {
-    marginLeft: 15,
-    fontSize: 16,
-    color: "#4A5568",
-  },
-  logoutButton: {
-    backgroundColor: "#E53E3E",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 15,
-    borderRadius: 10,
-    marginHorizontal: 15,
-    marginVertical: 30,
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 4,
   },
-  logoutButtonText: {
+  actionButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
     fontWeight: "bold",
-    marginLeft: 10,
+    marginLeft: 8,
   },
 })
 
