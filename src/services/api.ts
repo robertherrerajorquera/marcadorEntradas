@@ -5,13 +5,13 @@ import { Platform } from "react-native"
 // Get the appropriate API URL based on platform
 const getApiUrl = () => {
   if (Platform.OS === "android") {
-    return "http://192.168.4.21/backendMarcadorEntradas/api"
+    return "http://192.168.189.21/backendMarcadorEntradas/api"
   } else if (Platform.OS === "ios") {
-    return "http://192.168.4.21/backendMarcadorEntradas/api"
+    return "http://192.168.189.21/backendMarcadorEntradas/api"
   } else {
     // Para web, usar una URL relativa o absoluta según la configuración del servidor
    // const baseUrl = window.location.origin
-    const baseUrl ="http://192.168.4.21";
+    const baseUrl ="http://192.168.189.21";
     return `${baseUrl}/backendMarcadorEntradas/api`;
   }
 }
@@ -182,44 +182,22 @@ export const authService = {
   },
 
   // Login de usuario con RUT
-  async loginWithRut(rut: string, password: string, isQrLogin = false): Promise<LoginResponse> {
+  loginWithRut: async (rut: string) => {
     try {
-      console.log("Enviando solicitud de login con RUT a la API:", { rut, isQrLogin })
-
-      // Si es login por QR, usamos un endpoint diferente que no requiere contraseña
-      const endpoint = isQrLogin ? "login_rut_qr.php" : "login_rut.php"
-      const url = `${API_URL}/usuarios/${endpoint}`
-      console.log("URL de login con RUT:", url)
-
-      const requestBody = isQrLogin
-        ? { rut } // Solo enviamos el RUT para login por QR
-        : { rut, password } // Enviamos RUT y contraseña para login normal
-
-      const response = await fetch(url, {
+      const response = await fetch(`${API_URL}/usuarios/login_rut_qr.php`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "application/json",
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({ rut }),
       })
 
-      console.log("Código de estado HTTP:", response.status)
-      const data = await safelyParseResponse(response)
-      console.log("Respuesta de la API (login con RUT):", data)
-
-      // Asegurarse de que el rol sea un string
-      if (data.user && data.user.role !== undefined) {
-        data.user.role = String(data.user.role).trim()
-        console.log("Rol del usuario (normalizado):", data.user.role)
-      }
-
-      return data
+      return await response.json()
     } catch (error) {
-      return handleFetchError(error)
+      console.error("Error en el servicio de login con RUT:", error)
+      return { error: "ERROR_API_CONNECTION", message: "Error de conexión con el servidor" }
     }
   },
-
   // Login with QR code
   async loginWithQr(email: string, token: string): Promise<LoginResponse> {
     try {

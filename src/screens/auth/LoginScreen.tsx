@@ -1,4 +1,4 @@
-
+"use client"
 
 import { useState, useEffect } from "react"
 import {
@@ -16,7 +16,6 @@ import {
 import { TextInput } from "react-native-gesture-handler"
 import { useAuth } from "../../contexts/AuthContext"
 import { useNavigation } from "@react-navigation/native"
-import { authService } from "../../services/api"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import { Code } from "react-native-feather"
 import { CameraView, Camera } from "expo-camera"
@@ -28,7 +27,7 @@ const LoginScreen = () => {
   const [showQrScanner, setShowQrScanner] = useState(false)
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [scanned, setScanned] = useState(false)
-  const { login } = useAuth()
+  const { login, loginWithRut } = useAuth()
   const navigation = useNavigation()
   const { showToast } = useSimpleToast()
 
@@ -57,23 +56,11 @@ const LoginScreen = () => {
     try {
       console.log("Iniciando login con:", { email })
 
-      // First try to login with the PHP API
-      const response = await authService.login(email, password)
-
-      if (response.error || !response.user) {
-        console.error("Error en el login (API):", response.error || "Usuario no encontrado")
-        showToast(response.message || "Credenciales inválidas", "error")
-        setIsLoading(false)
-        return
-      }
-
-      console.log("Login exitoso en la API, actualizando estado local")
-
-      // If API login was successful, update local state
+      // Use the login function from AuthContext
       const success = await login(email, password)
 
       if (!success) {
-        showToast("Error al iniciar sesión", "error")
+        showToast("Error al iniciar sesión. Verifica tus credenciales.", "error")
       }
     } catch (error) {
       console.error("Error en el login:", error)
@@ -94,6 +81,9 @@ const LoginScreen = () => {
       // Log the raw QR data
       console.log("QR Code scanned:", data)
 
+      // Extract RUT/RUN from QR code
+      let rut = null
+
       // Check if the data is a URL containing RUN parameter
       if (data.includes("RUN=")) {
         try {
@@ -101,50 +91,9 @@ const LoginScreen = () => {
           const urlParams = new URLSearchParams(data.split("?")[1])
 
           // Get the RUN parameter
-          const run = urlParams.get("RUN")
-
-          if (run) {
-            showToast(`Iniciando sesión con QR`, "info")
-
-            // Attempt to login with the RUN
-            setIsLoading(true)
-
-            // Call the loginWithRut function without password
-            authService
-              .loginWithRut(run, "", true) // Añadir el parámetro isQrLogin=true
-              .then((response) => {
-                if (response.error || !response.user) {
-                  console.error("Error en el login con RUN:", response.error || "RUN no encontrado")
-                  showToast("Usuario no encontrado con el RUN escaneado", "error")
-                  return
-                }
-
-                console.log("Login con RUN exitoso, actualizando estado local")
-
-                // If RUN login was successful, update local state
-                login(response.user.email || "", "", true, response.user).then((success) => {
-                  if (!success) {
-                    showToast("Error al iniciar sesión con RUN", "error")
-                  } else {
-                    showToast(`Inicio de sesión exitoso con RUN: ${run}`, "success")
-                  }
-                })
-              })
-              .catch((error) => {
-                console.error("Error al procesar el RUN:", error)
-                showToast("Error al procesar el RUN", "error")
-              })
-              .finally(() => {
-                setIsLoading(false)
-              })
-          } else {
-            showToast("No se pudo extraer el RUN del código QR", "error")
-            setIsLoading(false)
-          }
+          rut = urlParams.get("RUN")
         } catch (e) {
           console.error("Error al procesar la URL del QR:", e)
-          showToast("Error al procesar la URL del QR", "error")
-          setIsLoading(false)
         }
       } else {
         // Try to parse as JSON as fallback
@@ -162,55 +111,36 @@ const LoginScreen = () => {
             const urlParams = new URLSearchParams(url.split("?")[1])
 
             // Get the RUN parameter
-            const run = urlParams.get("RUN")
-
-            if (run) {
-              showToast(`Iniciando sesión con QR`, "info")
-
-              // Attempt to login with the RUN
-              setIsLoading(true)
-
-              // Call the loginWithRut function without password
-              authService
-                .loginWithRut(run, "", true) // Añadir el parámetro isQrLogin=true
-                .then((response) => {
-                  if (response.error || !response.user) {
-                    console.error("Error en el login con RUN:", response.error || "RUN no encontrado")
-                    showToast("Usuario no encontrado con el RUN escaneado", "error")
-                    return
-                  }
-
-                  console.log("Login con RUN exitoso, actualizando estado local")
-
-                  // If RUN login was successful, update local state
-                  login(response.user.email || "", "", true, response.user).then((success) => {
-                    if (!success) {
-                      showToast("Error al iniciar sesión con RUN", "error")
-                    } else {
-                      showToast(`Inicio de sesión exitoso con RUN: ${run}`, "success")
-                    }
-                  })
-                })
-                .catch((error) => {
-                  console.error("Error al procesar el RUN:", error)
-                  showToast("Error al procesar el RUN", "error")
-                })
-                .finally(() => {
-                  setIsLoading(false)
-                })
-            } else {
-              showToast("No se pudo extraer el RUN del código QR", "error")
-              setIsLoading(false)
-            }
-          } else {
-            showToast("Formato de QR no reconocido", "error")
-            setIsLoading(false)
+            rut = urlParams.get("RUN")
           }
         } catch (e) {
           console.error("Error al parsear el QR como JSON:", e)
-          showToast("Formato de QR no válido", "error")
-          setIsLoading(false)
         }
+      }
+
+      if (rut) {
+        showToast(`Iniciando sesión con QR`, "info")
+        setIsLoading(true)
+
+        // Call the loginWithRut function from AuthContext
+        loginWithRut(rut)
+          .then((success:any) => {
+            if (!success) {
+              showToast("Usuario no encontrado con el RUT escaneado", "error")
+            } else {
+              showToast(`Inicio de sesión exitoso con RUT: ${rut}`, "success")
+            }
+          })
+          .catch((error:any) => {
+            console.error("Error al procesar el RUT:", error)
+            showToast("Error al procesar el RUT", "error")
+          })
+          .finally(() => {
+            setIsLoading(false)
+          })
+      } else {
+        showToast("No se pudo extraer el RUT del código QR", "error")
+        setIsLoading(false)
       }
     } catch (error) {
       console.error("Error al procesar el código QR:", error)

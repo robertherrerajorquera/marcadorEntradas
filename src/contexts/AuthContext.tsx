@@ -25,7 +25,7 @@ interface User {
 interface AuthContextType {
   isAuthenticated: boolean
   user: User | null
-  login: (email: string, password: string) => Promise<boolean>
+  login: (email: string, password: string, isQrLogin?: boolean, userData?: any) => Promise<boolean>
   loginWithRut: (rut: string) => Promise<boolean>
   logout: () => Promise<void>
   loading: boolean
@@ -41,21 +41,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const { showToast } = useSimpleToast()
-
   const getApiUrl = () => {
     if (Platform.OS === "android") {
-      return "http://192.168.4.21/backendMarcadorEntradas/api"
+      return "http://192.168.189.21/backendMarcadorEntradas/api"
     } else if (Platform.OS === "ios") {
-      return "http://192.168.4.21/backendMarcadorEntradas/api"
+      return "http://192.168.189.21/backendMarcadorEntradas/api"
     } else {
       // Para web, usar una URL relativa o absoluta según la configuración del servidor
       //const baseUrl = window.location.origin
-      const baseUrl ="http://192.168.4.21"
+      const baseUrl ="http://192.168.189.21"
       return `${baseUrl}/backendMarcadorEntradas/api`
     }
   }
   
   const API_URL = getApiUrl()
+
 
   // Cargar el estado de autenticación al iniciar
   useEffect(() => {
@@ -78,12 +78,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loadAuthState()
   }, [])
 
-  // Función para iniciar sesión
-  const login = async (email: string, password: string): Promise<boolean> => {
+  // Update the login method to properly handle QR login
+  const login = async (email: string, password: string, isQrLogin = false, userData: any = null): Promise<boolean> => {
     setLoading(true)
     try {
-      console.log("Iniciando login con:", { email })
+      console.log("Iniciando login con:", { email, isQrLogin })
 
+      if (isQrLogin && userData) {
+        // If we already have user data from QR login, just use it directly
+        const qrUserData: User = {
+          id: userData.id,
+          nombre: userData.nombre,
+          email: userData.email,
+          role: userData.role,
+          empresaId: userData.empresaId,
+          empresaNombre: userData.empresaNombre,
+          position: userData.position,
+          department: userData.department,
+          status_employee: userData.status_employee,
+          rut: userData.rut,
+          phone: userData.phone,
+        }
+
+        setUser(qrUserData)
+        setIsAuthenticated(true)
+        await AsyncStorage.setItem("user", JSON.stringify(qrUserData))
+
+        console.log("Login con QR exitoso, usuario guardado:", qrUserData)
+        return true
+      }
+
+      // Regular email/password login
       console.log("Enviando solicitud de login con email a la API:", { email })
       console.log("URL de login:", `${API_URL}/usuarios/login.php`)
 
@@ -154,11 +179,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }
 
-  // Función para iniciar sesión con RUT (para QR)
+  // Add the loginWithRut method to the AuthContext
   const loginWithRut = async (rut: string): Promise<boolean> => {
     setLoading(true)
     try {
-      console.log("Enviando solicitud de login con RUT a la API:", { isQrLogin: true, rut })
+      console.log("Enviando solicitud de login con RUT a la API:", { rut })
       console.log("URL de login con RUT:", `${API_URL}/usuarios/login_rut_qr.php`)
 
       const response = await fetch(`${API_URL}/usuarios/login_rut_qr.php`, {
@@ -166,7 +191,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ isQrLogin: true, rut }),
+        body: JSON.stringify({ rut }),
       })
 
       console.log("Código de estado HTTP:", response.status)
@@ -241,7 +266,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }
 
-  // Valor del contexto
+  // Update the value object to include the loginWithRut method
   const value = {
     isAuthenticated,
     user,
