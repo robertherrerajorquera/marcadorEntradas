@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Platform } from "react-native"
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Platform, Alert } from "react-native"
 import { Search, Filter, ChevronRight, User, Download } from "react-native-feather"
 import { format } from "date-fns"
 import { useAuth } from "../../contexts/AuthContext"
@@ -99,13 +99,13 @@ const EmployerEmployeesScreen = () => {
     }
   }
 
-  // Function to download CSV file (works on both web and native)
+  // Update the downloadCSV function to use React Native's Linking API
   const downloadCSV = async (url: string, fileName = "export.csv") => {
     try {
       showToast("Preparando exportación...", "info")
 
       if (Platform.OS === "web") {
-        // Web implementation
+        // Web implementation - no changes needed
         try {
           const response = await fetch(url)
 
@@ -131,15 +131,24 @@ const EmployerEmployeesScreen = () => {
           showToast("Error al descargar el archivo", "error")
         }
       } else {
-        // Native implementation using Linking
-        const Linking = require("react-native").Linking
-        const canOpen = await Linking.canOpenURL(url)
+        // Mobile implementation using React Native's Linking API
+        try {
+          // Import Linking from react-native
+          const { Linking } = require("react-native")
 
-        if (canOpen) {
-          await Linking.openURL(url)
-          showToast("Archivo abierto correctamente", "success")
-        } else {
-          showToast("No se puede abrir el enlace para descargar el archivo", "error")
+          // Check if the URL can be opened
+          const canOpen = await Linking.canOpenURL(url)
+
+          if (canOpen) {
+            // Open the URL directly in the browser or appropriate app
+            await Linking.openURL(url)
+            showToast("Archivo CSV generado. Abriéndolo...", "success")
+          } else {
+            showToast("No se puede abrir la URL para descargar el archivo", "error")
+          }
+        } catch (error) {
+          console.error("Error al abrir URL:", error)
+          showToast("Error al abrir el archivo CSV", "error")
         }
       }
     } catch (error) {
@@ -148,52 +157,59 @@ const EmployerEmployeesScreen = () => {
     }
   }
 
-  const exportEmployeeHistory = async (employee: Usuario) => {
-    try {
-      // Get date range for the export (last month)
-      const today = new Date()
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+  const exportEmployeeHistory = useCallback(
+    async (employee: Usuario) => {
+      try {
+        // Get date range for the export (last month)
+        const today = new Date()
+        const oneMonthAgo = new Date()
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
 
-      const formattedStartDate = format(oneMonthAgo, "yyyy-MM-dd")
-      const formattedEndDate = format(today, "yyyy-MM-dd")
+        const formattedStartDate = format(oneMonthAgo, "yyyy-MM-dd")
+        const formattedEndDate = format(today, "yyyy-MM-dd")
 
-      // Build URL for CSV export
-      const csvUrl = `${API_URL}/export/excel.php?usuario_id=${employee.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
+        // Build URL for CSV export
+        const csvUrl = `${API_URL}/export/excel.php?usuario_id=${employee.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
 
-      // Download the file
-      await downloadCSV(csvUrl, `historial_${employee.nombre}.csv`)
-    } catch (error) {
-      console.error("Error al exportar a CSV:", error)
-      showToast("No se pudo generar el archivo CSV", "error")
-    }
-  }
+        // Download the file
+        await downloadCSV(csvUrl, `historial_${employee.nombre}.csv`)
+      } catch (error) {
+        console.error("Error al exportar a CSV:", error)
+        showToast("No se pudo generar el archivo CSV", "error")
+      }
+    },
+    [API_URL, showToast],
+  )
 
   // Handle employee selection - navigate to detail screen or show options
-  const handleEmployeePress = (employee: Usuario) => {
-    // Format the employee data for the detail screen
-    const employeeForDetail = {
-      id: employee.id,
-      nombre: employee.nombre,
-      email: employee.email || `${employee.nombre.toLowerCase().replace(/\s+/g, ".")}@example.com`,
-      position: employee.position,
-      department: employee.department,
-      status_employee: employee.status_employee,
-      phone: employee.phone || "+56 9 1234 5678",
-    }
+  const handleEmployeePress = useCallback(
+    (employee: Usuario) => {
+      // Format the employee data for the detail screen
+      const employeeForDetail = {
+        id: employee.id,
+        nombre: employee.nombre,
+        email: employee.email || `${employee.nombre.toLowerCase().replace(/\s+/g, ".")}@example.com`,
+        position: employee.position,
+        department: employee.department,
+        status_employee: employee.status_employee,
+        phone: employee.phone || "+56 9 1234 5678",
+      }
 
-    // Use type-safe navigation
-    // @ts-ignore - Ignoring type checking for navigation to avoid complex type setup
-    navigation.navigate("EmployeeDetail", { employee: employeeForDetail })
-  }
+      // Use type-safe navigation
+      // @ts-ignore - Ignoring type checking for navigation to avoid complex type setup
+      navigation.navigate("EmployeeDetail", { employee: employeeForDetail })
+    },
+    [navigation],
+  )
 
   // Function to export all records
   const handleExportAll = useCallback(async () => {
     // Show confirmation dialog based on platform
-    const confirmExport =
-      Platform.OS === "web" ? window.confirm("¿Deseas exportar el historial de todos los empleados?") : true // For native, we'll handle confirmation in the else block below
+    if (Platform.OS === "web") {
+      const confirmExport = window.confirm("¿Deseas exportar el historial de todos los empleados?")
+      if (!confirmExport) return
 
-    if (confirmExport) {
+      // Web export code
       try {
         showToast("Preparando exportación de todos los registros...", "info")
 
@@ -214,8 +230,38 @@ const EmployerEmployeesScreen = () => {
         console.error("Error al exportar a CSV:", error)
         showToast("No se pudo generar el archivo CSV", "error")
       }
+    } else {
+      // For mobile, show a native alert
+      Alert.alert("Exportar registros", "¿Deseas exportar el historial de todos los empleados?", [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Exportar",
+          onPress: async () => {
+            try {
+              showToast("Preparando exportación de todos los registros...", "info")
+
+              // Get date range for the export (last month)
+              const today = new Date()
+              const oneMonthAgo = new Date()
+              oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+
+              const formattedStartDate = format(oneMonthAgo, "yyyy-MM-dd")
+              const formattedEndDate = format(today, "yyyy-MM-dd")
+
+              // Build URL for CSV export (all employees)
+              const csvUrl = `${API_URL}/export/excel.php?empresa_id=${user?.empresaId || user?.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
+
+              // Download the file
+              await downloadCSV(csvUrl, "historial_todos_empleados.csv")
+            } catch (error) {
+              console.error("Error al exportar a CSV:", error)
+              showToast("No se pudo generar el archivo CSV", "error")
+            }
+          },
+        },
+      ])
     }
-  }, [user, API_URL, showToast])
+  }, [user, API_URL, showToast, downloadCSV])
 
   return (
     <View style={styles.container}>

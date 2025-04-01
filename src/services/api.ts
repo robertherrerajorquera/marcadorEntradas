@@ -1,17 +1,17 @@
 // Servicio centralizado para llamadas a la API PHP
 // Cambia esta URL para que apunte a tu servidor local
 import { Platform } from "react-native"
-
+//tener en cuenta que si la api url esta maml por x motivo el excel no se bajara en este caso...
 // Get the appropriate API URL based on platform
 const getApiUrl = () => {
   if (Platform.OS === "android") {
-    return "http://ronihdev.com/backendMarcadorEntradas/api"
+    return "http://192.168.189.21/backendMarcadorEntradas/api"
   } else if (Platform.OS === "ios") {
-    return "http://ronihdev.com/backendMarcadorEntradas/api"
+    return "http://192.168.189.21/backendMarcadorEntradas/api"
   } else {
     // Para web, usar una URL relativa o absoluta según la configuración del servidor
    // const baseUrl = window.location.origin
-    const baseUrl ="http://ronihdev.com";
+    const baseUrl ="http://192.168.189.21";
     return `${baseUrl}/backendMarcadorEntradas/api`;
   }
 }
