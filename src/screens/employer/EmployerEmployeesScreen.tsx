@@ -1,4 +1,4 @@
-
+"use client"
 
 import { useState, useEffect, useCallback } from "react"
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Platform } from "react-native"
@@ -7,9 +7,7 @@ import { format } from "date-fns"
 import { useAuth } from "../../contexts/AuthContext"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import { useNavigation } from "@react-navigation/native"
-import { Employee as Usuario } from "../../types/index";
-
-// Mock data for demonstration (in a real app, this would come from the API)
+import type { Employee as Usuario } from "../../types/index"
 
 const EmployerEmployeesScreen = () => {
   const { API_URL, user } = useAuth()
@@ -41,7 +39,6 @@ const EmployerEmployeesScreen = () => {
       } catch (error) {
         console.error("Error al cargar empleados:", error)
         showToast("No se pudieron cargar los empleados", "error")
-
       } finally {
         setIsLoading(false)
       }
@@ -56,7 +53,7 @@ const EmployerEmployeesScreen = () => {
       setFilteredEmployees(employees)
     } else {
       const filtered = employees.filter(
-        (employee:Usuario) =>
+        (employee: Usuario) =>
           employee.nombre.toLowerCase().includes(text.toLowerCase()) ||
           employee.position.toLowerCase().includes(text.toLowerCase()) ||
           employee.department.toLowerCase().includes(text.toLowerCase()),
@@ -102,8 +99,8 @@ const EmployerEmployeesScreen = () => {
     }
   }
 
-  // Function to download Excel file (works on both web and native)
-  const downloadExcel = async (url: string, fileName = "export.xlsx") => {
+  // Function to download CSV file (works on both web and native)
+  const downloadCSV = async (url: string, fileName = "export.csv") => {
     try {
       showToast("Preparando exportación...", "info")
 
@@ -128,7 +125,7 @@ const EmployerEmployeesScreen = () => {
           a.remove()
           window.URL.revokeObjectURL(downloadUrl)
 
-          showToast("Archivo descargado correctamente", "success")
+          showToast("Archivo CSV descargado correctamente", "success")
         } catch (error) {
           console.error("Error downloading file:", error)
           showToast("Error al descargar el archivo", "error")
@@ -147,7 +144,7 @@ const EmployerEmployeesScreen = () => {
       }
     } catch (error) {
       console.error("Error al exportar:", error)
-      showToast("No se pudo generar el archivo Excel", "error")
+      showToast("No se pudo generar el archivo CSV", "error")
     }
   }
 
@@ -161,14 +158,14 @@ const EmployerEmployeesScreen = () => {
       const formattedStartDate = format(oneMonthAgo, "yyyy-MM-dd")
       const formattedEndDate = format(today, "yyyy-MM-dd")
 
-      // Build URL for Excel export
-      const excelUrl = `${API_URL}/export/excel.php?usuario_id=${employee.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
+      // Build URL for CSV export
+      const csvUrl = `${API_URL}/export/excel.php?usuario_id=${employee.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
 
       // Download the file
-      await downloadExcel(excelUrl, `historial_${employee.nombre}.xlsx`)
+      await downloadCSV(csvUrl, `historial_${employee.nombre}.csv`)
     } catch (error) {
-      console.error("Error al exportar a Excel:", error)
-      showToast("No se pudo generar el archivo Excel", "error")
+      console.error("Error al exportar a CSV:", error)
+      showToast("No se pudo generar el archivo CSV", "error")
     }
   }
 
@@ -208,14 +205,14 @@ const EmployerEmployeesScreen = () => {
         const formattedStartDate = format(oneMonthAgo, "yyyy-MM-dd")
         const formattedEndDate = format(today, "yyyy-MM-dd")
 
-        // Build URL for Excel export (all employees)
-        const excelUrl = `${API_URL}/export/excel.php?empresa_id=${user?.empresaId || user?.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
+        // Build URL for CSV export (all employees)
+        const csvUrl = `${API_URL}/export/excel.php?empresa_id=${user?.empresaId || user?.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
 
         // Download the file
-        await downloadExcel(excelUrl, "historial_todos_empleados.xlsx")
+        await downloadCSV(csvUrl, "historial_todos_empleados.csv")
       } catch (error) {
-        console.error("Error al exportar a Excel:", error)
-        showToast("No se pudo generar el archivo Excel", "error")
+        console.error("Error al exportar a CSV:", error)
+        showToast("No se pudo generar el archivo CSV", "error")
       }
     }
   }, [user, API_URL, showToast])
@@ -245,17 +242,23 @@ const EmployerEmployeesScreen = () => {
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{employees.filter((e:Usuario) => e.status_employee === "present").length}</Text>
+            <Text style={styles.statValue}>
+              {employees.filter((e: Usuario) => e.status_employee === "present").length}
+            </Text>
             <Text style={styles.statLabel}>Presentes</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{employees.filter((e:Usuario) => e.status_employee === "absent").length}</Text>
+            <Text style={styles.statValue}>
+              {employees.filter((e: Usuario) => e.status_employee === "absent").length}
+            </Text>
             <Text style={styles.statLabel}>Ausentes</Text>
           </View>
 
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{employees.filter((e:Usuario) => e.status_employee === "lunch").length}</Text>
+            <Text style={styles.statValue}>
+              {employees.filter((e: Usuario) => e.status_employee === "lunch").length}
+            </Text>
             <Text style={styles.statLabel}>Almorzando</Text>
           </View>
         </View>
@@ -263,7 +266,7 @@ const EmployerEmployeesScreen = () => {
 
       <FlatList
         data={filteredEmployees}
-        keyExtractor={(item:Usuario) => item.id}
+        keyExtractor={(item: Usuario) => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.employeeCard} onPress={() => handleEmployeePress(item)}>
             <View style={styles.employeeAvatarContainer}>
@@ -303,7 +306,7 @@ const EmployerEmployeesScreen = () => {
       {/* Export all records button */}
       <TouchableOpacity style={styles.exportAllButton} activeOpacity={0.7} onPress={handleExportAll}>
         <Download stroke="#FFFFFF" width={20} height={20} />
-        <Text style={styles.exportAllButtonText}>Exportar todos los registros</Text>
+        <Text style={styles.exportAllButtonText}>Exportar todos los registros (CSV)</Text>
       </TouchableOpacity>
     </View>
   )

@@ -43,13 +43,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const { showToast } = useSimpleToast()
   const getApiUrl = () => {
     if (Platform.OS === "android") {
-      return "http://192.168.189.21/backendMarcadorEntradas/api"
+      return "http://ronihdev.com/backendMarcadorEntradas/api"
     } else if (Platform.OS === "ios") {
-      return "http://192.168.189.21/backendMarcadorEntradas/api"
+      return "http://ronihdev.com/backendMarcadorEntradas/api"
     } else {
       // Para web, usar una URL relativa o absoluta según la configuración del servidor
       //const baseUrl = window.location.origin
-      const baseUrl ="http://192.168.189.21"
+      const baseUrl ="http://ronihdev.com"
       return `${baseUrl}/backendMarcadorEntradas/api`
     }
   }

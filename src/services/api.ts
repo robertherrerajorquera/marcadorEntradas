@@ -5,13 +5,13 @@ import { Platform } from "react-native"
 // Get the appropriate API URL based on platform
 const getApiUrl = () => {
   if (Platform.OS === "android") {
-    return "http://192.168.189.21/backendMarcadorEntradas/api"
+    return "http://ronihdev.com/backendMarcadorEntradas/api"
   } else if (Platform.OS === "ios") {
-    return "http://192.168.189.21/backendMarcadorEntradas/api"
+    return "http://ronihdev.com/backendMarcadorEntradas/api"
   } else {
     // Para web, usar una URL relativa o absoluta según la configuración del servidor
    // const baseUrl = window.location.origin
-    const baseUrl ="http://192.168.189.21";
+    const baseUrl ="http://ronihdev.com";
     return `${baseUrl}/backendMarcadorEntradas/api`;
   }
 }
@@ -350,33 +350,7 @@ export const empleadosService = {
     }
   },
 
-  // Actualizar el estado de un empleado
-  async actualizarEstadoEmpleado(id: string, status: string): Promise<ApiResponse> {
-    try {
-      console.log("Actualizando estado del empleado:", { id, status })
 
-      const url = `${API_URL}/usuarios/update_status.php`
-      console.log("URL de actualización de estado:", url)
-
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          id,
-          status_employee: status,
-        }),
-      })
-
-      const data = await safelyParseResponse(response)
-      console.log("Respuesta de la API (actualización de estado):", data)
-      return data
-    } catch (error) {
-      return handleFetchError(error)
-    }
-  },
 }
 
 // Asegurarse de que el servicio de empresas esté correctamente implementado
