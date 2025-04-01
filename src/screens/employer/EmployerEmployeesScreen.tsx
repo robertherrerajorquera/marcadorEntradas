@@ -8,6 +8,9 @@ import { useAuth } from "../../contexts/AuthContext"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import { useNavigation } from "@react-navigation/native"
 import type { Employee as Usuario } from "../../types/index"
+// These imports will be used dynamically to avoid issues with web platform
+// import * as FileSystem from "expo-file-system"
+// import * as Sharing from "expo-sharing"
 
 const EmployerEmployeesScreen = () => {
   const { API_URL, user } = useAuth()
@@ -99,7 +102,7 @@ const EmployerEmployeesScreen = () => {
     }
   }
 
-  // Update the downloadCSV function to use React Native's Linking API
+  // Update the downloadCSV function to improve error handling with toast notifications
   const downloadCSV = async (url: string, fileName = "export.csv") => {
     try {
       showToast("Preparando exportación...", "info")
@@ -111,8 +114,8 @@ const EmployerEmployeesScreen = () => {
 
           if (!response.ok) {
             const errorText = await response.text()
-            showToast(`Error: ${errorText || "No se pudo descargar el archivo"}`, "error")
-            return
+            showToast(`Error al generar el archivo CSV: ${errorText || "No se pudo descargar el archivo"}`, "error")
+            return false
           }
 
           const blob = await response.blob()
@@ -126,9 +129,14 @@ const EmployerEmployeesScreen = () => {
           window.URL.revokeObjectURL(downloadUrl)
 
           showToast("Archivo CSV descargado correctamente", "success")
+          return true
         } catch (error) {
           console.error("Error downloading file:", error)
-          showToast("Error al descargar el archivo", "error")
+          showToast(
+            `Error al descargar el archivo: ${error instanceof Error ? error.message : "Error desconocido"}`,
+            "error",
+          )
+          return false
         }
       } else {
         // Mobile implementation using React Native's Linking API
@@ -143,23 +151,36 @@ const EmployerEmployeesScreen = () => {
             // Open the URL directly in the browser or appropriate app
             await Linking.openURL(url)
             showToast("Archivo CSV generado. Abriéndolo...", "success")
+            return true
           } else {
             showToast("No se puede abrir la URL para descargar el archivo", "error")
+            return false
           }
         } catch (error) {
           console.error("Error al abrir URL:", error)
-          showToast("Error al abrir el archivo CSV", "error")
+          showToast(
+            `Error al abrir el archivo CSV: ${error instanceof Error ? error.message : "Error desconocido"}`,
+            "error",
+          )
+          return false
         }
       }
     } catch (error) {
       console.error("Error al exportar:", error)
-      showToast("No se pudo generar el archivo CSV", "error")
+      showToast(
+        `No se pudo generar el archivo CSV: ${error instanceof Error ? error.message : "Error desconocido"}`,
+        "error",
+      )
+      return false
     }
   }
 
+  // Update the exportEmployeeHistory function to handle errors better
   const exportEmployeeHistory = useCallback(
     async (employee: Usuario) => {
       try {
+        showToast(`Exportando historial de ${employee.nombre}...`, "info")
+
         // Get date range for the export (last month)
         const today = new Date()
         const oneMonthAgo = new Date()
@@ -172,10 +193,17 @@ const EmployerEmployeesScreen = () => {
         const csvUrl = `${API_URL}/export/excel.php?usuario_id=${employee.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
 
         // Download the file
-        await downloadCSV(csvUrl, `historial_${employee.nombre}.csv`)
+        const success = await downloadCSV(csvUrl, `historial_${employee.nombre}.csv`)
+
+        if (!success) {
+          showToast(`No se pudo exportar el historial de ${employee.nombre}`, "error")
+        }
       } catch (error) {
         console.error("Error al exportar a CSV:", error)
-        showToast("No se pudo generar el archivo CSV", "error")
+        showToast(
+          `Error al exportar historial: ${error instanceof Error ? error.message : "Error desconocido"}`,
+          "error",
+        )
       }
     },
     [API_URL, showToast],
@@ -202,7 +230,7 @@ const EmployerEmployeesScreen = () => {
     [navigation],
   )
 
-  // Function to export all records
+  // Update the handleExportAll function to handle errors better
   const handleExportAll = useCallback(async () => {
     // Show confirmation dialog based on platform
     if (Platform.OS === "web") {
@@ -225,10 +253,17 @@ const EmployerEmployeesScreen = () => {
         const csvUrl = `${API_URL}/export/excel.php?empresa_id=${user?.empresaId || user?.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
 
         // Download the file
-        await downloadCSV(csvUrl, "historial_todos_empleados.csv")
+        const success = await downloadCSV(csvUrl, "historial_todos_empleados.csv")
+
+        if (!success) {
+          showToast("No se pudo completar la exportación de todos los registros", "error")
+        }
       } catch (error) {
         console.error("Error al exportar a CSV:", error)
-        showToast("No se pudo generar el archivo CSV", "error")
+        showToast(
+          `Error al exportar todos los registros: ${error instanceof Error ? error.message : "Error desconocido"}`,
+          "error",
+        )
       }
     } else {
       // For mobile, show a native alert
@@ -252,10 +287,17 @@ const EmployerEmployeesScreen = () => {
               const csvUrl = `${API_URL}/export/excel.php?empresa_id=${user?.empresaId || user?.id}&fecha_inicio=${formattedStartDate}&fecha_fin=${formattedEndDate}`
 
               // Download the file
-              await downloadCSV(csvUrl, "historial_todos_empleados.csv")
+              const success = await downloadCSV(csvUrl, "historial_todos_empleados.csv")
+
+              if (!success) {
+                showToast("No se pudo completar la exportación de todos los registros", "error")
+              }
             } catch (error) {
               console.error("Error al exportar a CSV:", error)
-              showToast("No se pudo generar el archivo CSV", "error")
+              showToast(
+                `Error al exportar todos los registros: ${error instanceof Error ? error.message : "Error desconocido"}`,
+                "error",
+              )
             }
           },
         },
