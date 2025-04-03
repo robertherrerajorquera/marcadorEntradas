@@ -243,6 +243,42 @@ const RegisterScreen = () => {
     }
   }
 
+  
+  const handlePhoneChange = (text: string) => {
+    // Solo permite números
+    let digits = text.replace(/\D/g, "");
+
+    // Si el usuario borra todo, dejamos el input vacío
+    if (digits.length === 0) {
+      setPhone("");
+      return;
+    }
+
+    // Si el usuario empieza a escribir y no está el prefijo "56", lo agregamos
+    if (!digits.startsWith("56")) {
+      digits = "56" + digits;
+    }
+
+    // Limita la longitud máxima del número (sin incluir el "+")
+    if (digits.length > 11) {
+      digits = digits.substring(0, 11);
+    }
+
+    // Aplica el formato +56 9 XXXX XXXX
+    let formattedPhone = "+56";
+    if (digits.length > 2) {
+      formattedPhone += " " + digits.substring(2, 3); // El "9"
+    }
+    if (digits.length > 3) {
+      formattedPhone += " " + digits.substring(3, 7); // Primer bloque de 4 números
+    }
+    if (digits.length > 7) {
+      formattedPhone += " " + digits.substring(7, 11); // Segundo bloque de 4 números
+    }
+
+    setPhone(formattedPhone);
+  };
+
 
 
   return (
@@ -278,7 +314,7 @@ const RegisterScreen = () => {
             style={styles.input}
             placeholder="Ej: +56 9 1234 5678"
             value={phone}
-            onChangeText={setPhone}
+            onChangeText={handlePhoneChange}
             keyboardType="phone-pad"
           />
 
@@ -333,7 +369,7 @@ const RegisterScreen = () => {
           </View>
 
           {/* Company selector - only show for employees */}
-          {role === "employee" && (
+        
             <>
               <Text style={styles.label}>Empresa</Text>
               {loadingCompanies ? (
@@ -355,7 +391,7 @@ const RegisterScreen = () => {
                 </View>
               )}
             </>
-          )}
+      
 
           <TouchableOpacity
             style={[styles.button, isLoading && styles.buttonDisabled]}
