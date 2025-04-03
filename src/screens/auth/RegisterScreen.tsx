@@ -38,7 +38,6 @@ const RegisterScreen = () => {
   const [companies, setCompanies] = useState<Company[]>([])
   const [selectedCompany, setSelectedCompany] = useState<number | null>(null)
   const [loadingCompanies, setLoadingCompanies] = useState(false)
-  const { register } = useAuth()
   const navigation = useNavigation()
   const { showToast } = useSimpleToast()
   const { API_URL } = useAuth()
@@ -94,44 +93,39 @@ const RegisterScreen = () => {
     fetchCompanies()
   }, [API_URL, showToast])
 
+
+
   // Format RUT as user types (XX.XXX.XXX-X)
   const handleRutChange = (text: string) => {
-    // Remove all non-numeric characters and the verification digit
-    let digits = text.replace(/\D/g, "")
+    let digits = text.replace(/[^0-9kK]/g, "");
 
-    // Keep only up to 9 digits (8 digits + verification digit)
+    // Permite que el input se borre completamente
+    if (digits.length === 0) {
+      setRut("");
+      return;
+    }
+
+    // Mantiene solo hasta 9 caracteres (8 números + verificador)
     if (digits.length > 9) {
-      digits = digits.substring(0, 9)
+      digits = digits.substring(0, 9);
     }
 
-    // Format the RUT
-    if (digits.length > 0) {
-      let formattedRut = ""
+    // Formatea el RUT visualmente con puntos y guion
+    let formattedRut = "";
+    const verificationDigit = digits.charAt(digits.length - 1);
+    const mainDigits = digits.substring(0, digits.length - 1);
 
-      // Add the verification digit (last digit)
-      const verificationDigit = digits.charAt(digits.length - 1)
-      const mainDigits = digits.substring(0, digits.length - 1)
-
-      // Format the main digits with dots
-      let i = mainDigits.length
-      while (i > 0) {
-        const start = Math.max(0, i - 3)
-        formattedRut = (i > 3 ? "." : "") + mainDigits.substring(start, i) + formattedRut
-        i = start
-      }
-
-      // Add the verification digit with a hyphen
-      if (mainDigits.length > 0) {
-        formattedRut = formattedRut + "-" + verificationDigit
-      } else {
-        formattedRut = verificationDigit
-      }
-
-      setRut(formattedRut)
-    } else {
-      setRut("")
+    let i = mainDigits.length;
+    while (i > 0) {
+      const start = Math.max(0, i - 3);
+      formattedRut = mainDigits.substring(start, i) + (formattedRut ? "." + formattedRut : "");
+      i = start;
     }
-  }
+
+    formattedRut = mainDigits.length > 0 ? formattedRut + "-" + verificationDigit : verificationDigit;
+
+    setRut(formattedRut);
+  };
 
   // Validate Chilean RUT
   const validateRut = (rutValue: string): boolean => {
@@ -200,6 +194,8 @@ const RegisterScreen = () => {
       return
     }
 
+    const rutSinPuntos = rut.replace(/\./g, "");
+
     // Validar que se haya seleccionado una empresa si el rol es empleado
     if (role === "employee" && !selectedCompany) {
       showToast("Por favor selecciona una empresa", "error")
@@ -212,7 +208,7 @@ const RegisterScreen = () => {
         nombre,
         email,
         role,
-        rut,
+        rutSinPuntos,
         empresa_id: role === "employee" ? selectedCompany : undefined,
       })
       showToast("Procesando registro...", "info")
@@ -226,7 +222,7 @@ const RegisterScreen = () => {
         role === "employee" ? selectedCompany?.toString() : undefined, // empresa_id (solo para empleados)
         "Sin asignar", // position
         "Sin asignar", // department
-        rut, // rut (nuevo campo)
+        rutSinPuntos, // rut (nuevo campo)
         phone, // Añadir el teléfono
       )
 
@@ -238,8 +234,6 @@ const RegisterScreen = () => {
 
       console.log("Registro exitoso en la API, actualizando estado local")
 
-      // Si el registro en la API fue exitoso, actualizamos el estado local
-      await register(nombre, email, password, role)
       showToast("Registro exitoso. ¡Bienvenido!", "success")
     } catch (error) {
       console.error("Error en el registro:", error)
@@ -248,6 +242,8 @@ const RegisterScreen = () => {
       setIsLoading(false)
     }
   }
+
+
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
@@ -273,7 +269,8 @@ const RegisterScreen = () => {
             placeholder="Ej: 12.345.678-9"
             value={rut}
             onChangeText={handleRutChange}
-            keyboardType="numeric"
+            keyboardType="default" 
+            autoCapitalize="none"
           />
 
           <Text style={styles.label}>Teléfono</Text>
