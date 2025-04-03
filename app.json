@@ -7,6 +7,10 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
+    "developmentClient": {
+      "silentLaunch": false
+    },
+    "jsEngine": "hermes",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,6 +19,9 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
     },
     "android": {
       "adaptiveIcon": {
@@ -27,6 +34,7 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
+      "softwareKeyboardLayoutMode": "pan",
       "package": "com.robertherrera.marcadorEntradas"
     },
     "web": {

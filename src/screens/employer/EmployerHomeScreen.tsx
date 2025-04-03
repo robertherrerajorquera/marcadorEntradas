@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native"
 import { format, startOfWeek, addDays } from "date-fns"
 import { es } from "date-fns/locale"
-import { Users, Clock, ChevronRight } from "react-native-feather"
+import { Feather } from "@expo/vector-icons"
 import { useNavigation } from "@react-navigation/native"
 import { useSession } from "../../contexts/SessionContext"
 import { useAuth } from "../../contexts/AuthContext"
@@ -355,7 +355,7 @@ const EmployerHomeScreen = () => {
       <View style={styles.statsContainer}>
         <View style={styles.statCard}>
           <View style={styles.statIconContainer}>
-            <Users stroke="#4C51BF" width={24} height={24} />
+              <Feather name="users" size={18}  color="#4C51BF" />
           </View>
           <Text style={styles.statValue}>{stats.totalEmployees}</Text>
           <Text style={styles.statLabel}>Empleados</Text>
@@ -363,7 +363,7 @@ const EmployerHomeScreen = () => {
 
         <View style={styles.statCard}>
           <View style={[styles.statIconContainer, { backgroundColor: "#EBF8FF" }]}>
-            <Clock stroke="#3182CE" width={24} height={24} />
+          <Feather name="clock" size={18}  color="#4C51BF" />
           </View>
           <Text style={styles.statValue}>{stats.presentToday}</Text>
           <Text style={styles.statLabel}>Presentes</Text>
@@ -371,7 +371,7 @@ const EmployerHomeScreen = () => {
 
         <View style={styles.statCard}>
           <View style={[styles.statIconContainer, { backgroundColor: "#FFF5F5" }]}>
-            <Clock stroke="#E53E3E" width={24} height={24} />
+          <Feather name="clock" size={18}  color="#4C51BF" />
           </View>
           <Text style={styles.statValue}>{stats.absentToday}</Text>
           <Text style={styles.statLabel}>Ausentes</Text>
@@ -389,7 +389,7 @@ const EmployerHomeScreen = () => {
             }}
           >
             <Text style={styles.seeAllText}>Ver todos</Text>
-            <ChevronRight stroke="#4C51BF" width={16} height={16} />
+            <Feather name="chevron-right" size={18}  color="#4C51BF" />
           </TouchableOpacity>
         </View>
 
@@ -421,7 +421,7 @@ const EmployerHomeScreen = () => {
           <Text style={styles.sectionTitle}>Resumen Semanal</Text>
           <TouchableOpacity disabled style={styles.seeAllButton} onPress={() => resetInactivityTimer()}>
             <Text style={styles.seeAllText}>Ver detalles</Text>
-            <ChevronRight stroke="#4C51BF" width={16} height={16} />
+            <Feather name="chevron-right" size={18}  color="#4C51BF" />
           </TouchableOpacity>
         </View>
 

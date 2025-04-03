@@ -17,7 +17,7 @@ import { TextInput } from "react-native-gesture-handler"
 import { useAuth } from "../../contexts/AuthContext"
 import { useNavigation } from "@react-navigation/native"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
-import { Code } from "react-native-feather"
+import { Feather } from "@expo/vector-icons"
 import { CameraView, Camera } from "expo-camera"
 
 const LoginScreen = () => {
@@ -271,7 +271,7 @@ const LoginScreen = () => {
             }}
             disabled={isLoading}
           >
-            <Code stroke="#FFFFFF" width={20} height={20} />
+             <Feather name="mail" size={20} color="#ffffff" style={styles.inputIcon} />
             <Text style={styles.buttonText}>Iniciar Sesión con QR</Text>
           </TouchableOpacity>
 
@@ -347,6 +347,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 10,
     gap: 10,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   buttonDisabled: {
     backgroundColor: "#A0AEC0",

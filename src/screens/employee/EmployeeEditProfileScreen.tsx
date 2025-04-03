@@ -12,7 +12,7 @@ import {
   Alert,
   Platform,
 } from "react-native"
-import { ArrowLeft, Save, Phone } from "react-native-feather"
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import { useNavigation } from "@react-navigation/native"
@@ -103,7 +103,7 @@ const EmployeeEditProfileScreen = () => {
       {/* Header con botón de regresar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <ArrowLeft stroke="#4C51BF" width={24} height={24} />
+        <Feather name="arrow-left" size={24} color="#4C51BF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Editar Perfil</Text>
         <TouchableOpacity
@@ -115,7 +115,7 @@ const EmployeeEditProfileScreen = () => {
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <>
-              <Save stroke="#FFFFFF" width={20} height={20} />
+             <Feather name="save" size={20} color="#FFFFFF" />
               <Text style={styles.saveButtonText}>Guardar</Text>
             </>
           )}
@@ -131,7 +131,7 @@ const EmployeeEditProfileScreen = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Número de teléfono</Text>
             <View style={styles.inputWithIcon}>
-              <Phone stroke="#4C51BF" width={20} height={20} style={styles.inputIcon} />
+            <Feather name="phone" size={20} color="#4C51BF" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 value={phone}

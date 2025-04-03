@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native"
-import { User, Mail, Phone, Briefcase, MapPin, Edit, LogOut } from "react-native-feather"
+import { Feather } from "@expo/vector-icons"
 import { useAuth } from "../../contexts/AuthContext"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import { useNavigation } from "@react-navigation/native"
@@ -115,7 +115,7 @@ const EmployerProfileScreen = () => {
             {/* Tarjeta de perfil personal */}
             <View style={styles.profileCard}>
               <View style={styles.avatarContainer}>
-                <User stroke="#FFFFFF" width={40} height={40} />
+                <Feather name="user" size={40}  color="#FFFFFF" />
               </View>
 
               <Text style={styles.userName}>{displayData.nombre}</Text>
@@ -123,27 +123,27 @@ const EmployerProfileScreen = () => {
 
               <View style={styles.infoSection}>
                 <View style={styles.infoItem}>
-                  <Mail stroke="#4C51BF" width={20} height={20} />
+                  <Feather name="mail" size={18}  color="#4C51BF" />
                   <Text style={styles.infoText}>{displayData.email}</Text>
                 </View>
 
                 {displayData.phone && (
                   <View style={styles.infoItem}>
-                    <Phone stroke="#4C51BF" width={20} height={20} />
+                    <Feather name="phone" size={18}  color="#4C51BF" />
                     <Text style={styles.infoText}>{displayData.phone}</Text>
                   </View>
                 )}
 
                 {displayData.position && (
                   <View style={styles.infoItem}>
-                    <Briefcase stroke="#4C51BF" width={20} height={20} />
+                     <Feather name="briefcase" size={18}  color="#4C51BF" />
                     <Text style={styles.infoText}>{displayData.position}</Text>
                   </View>
                 )}
 
                 {displayData.rut && (
                   <View style={styles.infoItem}>
-                    <User stroke="#4C51BF" width={20} height={20} />
+                     <Feather name="user" size={18}  color="#4C51BF" />
                     <Text style={styles.infoText}>RUT: {displayData.rut}</Text>
                   </View>
                 )}
@@ -155,27 +155,27 @@ const EmployerProfileScreen = () => {
               <Text style={styles.sectionTitle}>Información de la Empresa</Text>
 
               <View style={styles.infoItem}>
-                <Briefcase stroke="#4C51BF" width={20} height={20} />
+              <Feather name="briefcase" size={18}  color="#4C51BF" />
                 <Text style={styles.infoText}>{displayData.empresa.nombre}</Text>
               </View>
 
               {displayData.empresa.direccion && (
                 <View style={styles.infoItem}>
-                  <MapPin stroke="#4C51BF" width={20} height={20} />
+                    <Feather name="map-pin" size={18}  color="#4C51BF" />
                   <Text style={styles.infoText}>{displayData.empresa.direccion}</Text>
                 </View>
               )}
 
               {displayData.empresa.telefono && (
                 <View style={styles.infoItem}>
-                  <Phone stroke="#4C51BF" width={20} height={20} />
+                   <Feather name="phone" size={18}  color="#4C51BF" />
                   <Text style={styles.infoText}>{displayData.empresa.telefono}</Text>
                 </View>
               )}
 
               {displayData.empresa.email && (
                 <View style={styles.infoItem}>
-                  <Mail stroke="#4C51BF" width={20} height={20} />
+                    <Feather name="mail" size={18}  color="#4C51BF" />
                   <Text style={styles.infoText}>{displayData.empresa.email}</Text>
                 </View>
               )}
@@ -187,12 +187,12 @@ const EmployerProfileScreen = () => {
                 style={[styles.actionButton, { backgroundColor: "#4C51BF" }]}
                 onPress={handleEditProfile}
               >
-                <Edit stroke="#FFFFFF" width={20} height={20} />
+                  <Feather name="edit" size={18}  color="#FFFFFF" />
                 <Text style={styles.actionButtonText}>Editar Perfil</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.actionButton, { backgroundColor: "#F56565" }]} onPress={handleLogout}>
-                <LogOut stroke="#FFFFFF" width={20} height={20} />
+              <Feather name="log-out" size={18}  color="#ffffff" />
                 <Text style={styles.actionButtonText}>Cerrar Sesión</Text>
               </TouchableOpacity>
             </View>

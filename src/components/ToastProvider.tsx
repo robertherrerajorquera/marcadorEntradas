@@ -1,10 +1,11 @@
-
+"use client"
 
 // Un componente de toast mejorado para web y nativo (Android/iOS)
 import type React from "react"
 import { useEffect } from "react"
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native"
-import { X } from "react-native-feather"
+// Reemplazamos react-native-feather con @expo/vector-icons
+import { Feather } from "@expo/vector-icons"
 
 interface ToastProps {
   id: string
@@ -17,9 +18,12 @@ interface ToastProps {
 export const SimpleToast: React.FC<ToastProps> = ({ id, message, type = "info", onClose }) => {
   useEffect(() => {
     // Auto-cerrar después de 30 segundos
-    const timer = setTimeout(() => {
-      onClose(id)
-    }, type === "info" ? 3000 : 30000)
+    const timer = setTimeout(
+      () => {
+        onClose(id)
+      },
+      type === "info" ? 3000 : 30000,
+    )
 
     return () => clearTimeout(timer)
   }, [id, onClose, type])
@@ -95,7 +99,8 @@ export const SimpleToast: React.FC<ToastProps> = ({ id, message, type = "info", 
     <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
       <Text style={styles.message}>{message}</Text>
       <TouchableOpacity style={styles.closeButton} onPress={() => onClose(id)}>
-        <X stroke="#FFFFFF" width={16} height={16} />
+        {/* Reemplazamos el componente X de react-native-feather con Feather de @expo/vector-icons */}
+        <Feather name="x" size={18} color="#FFFFFF" />
       </TouchableOpacity>
     </View>
   )
@@ -203,16 +208,19 @@ export const showWebToast = (message: string, type: "success" | "error" | "info"
   container.appendChild(toast)
 
   // Auto-cerrar después de 30 segundos
-  setTimeout(() => {
-    if (container && container.contains(toast)) {
-      container.removeChild(toast)
+  setTimeout(
+    () => {
+      if (container && container.contains(toast)) {
+        container.removeChild(toast)
 
-      // Limpiar el contenedor si está vacío
-      if (container.childNodes.length === 0) {
-        document.body.removeChild(container)
+        // Limpiar el contenedor si está vacío
+        if (container.childNodes.length === 0) {
+          document.body.removeChild(container)
+        }
       }
-    }
-  },  type === "info" ? 3000 : 30000,)
+    },
+    type === "info" ? 3000 : 30000,
+  )
 }
 
 const styles = StyleSheet.create({

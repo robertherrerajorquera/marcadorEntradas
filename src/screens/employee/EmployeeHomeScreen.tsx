@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from "react-native"
-import { Clock, MapPin, Camera } from "react-native-feather"
 import * as Location from "expo-location"
 import { useAuth } from "../../contexts/AuthContext"
 import { format } from "date-fns"
@@ -11,6 +10,7 @@ import { marcajesService } from "../../services/api"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import { useSession } from "../../contexts/SessionContext"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { Feather } from "@expo/vector-icons"
 
 type CheckType = "in" | "out" | "lunch-out" | "lunch-in"
 
@@ -230,7 +230,7 @@ longitud: ${location.coords.longitude}`,
           onPress={() => handleCheck("in")}
           disabled={isLoading}
         >
-          <Clock stroke="#FFFFFF" width={24} height={24} />
+          <Feather name="clock" size={24} color="#FFFFFF" />
           <Text style={styles.checkButtonText}>{isProcessing("in") ? "Procesando..." : "Entrada"}</Text>
         </TouchableOpacity>
 
@@ -239,7 +239,7 @@ longitud: ${location.coords.longitude}`,
           onPress={() => handleCheck("lunch-out")}
           disabled={isLoading}
         >
-          <Clock stroke="#FFFFFF" width={24} height={24} />
+              <Feather name="clock" size={24} color="#FFFFFF" />
           <Text style={styles.checkButtonText}>
             {isProcessing("lunch-out") ? "Procesando..." : "Salida a Almorzar"}
           </Text>
@@ -250,7 +250,7 @@ longitud: ${location.coords.longitude}`,
           onPress={() => handleCheck("lunch-in")}
           disabled={isLoading}
         >
-          <Clock stroke="#FFFFFF" width={24} height={24} />
+              <Feather name="clock" size={24} color="#FFFFFF" />
           <Text style={styles.checkButtonText}>
             {isProcessing("lunch-in") ? "Procesando..." : "Regreso de Almuerzo"}
           </Text>
@@ -261,7 +261,7 @@ longitud: ${location.coords.longitude}`,
           onPress={() => handleCheck("out")}
           disabled={isLoading}
         >
-          <Clock stroke="#FFFFFF" width={24} height={24} />
+              <Feather name="clock" size={24} color="#FFFFFF" />
           <Text style={styles.checkButtonText}>{isProcessing("out") ? "Procesando..." : "Salida"}</Text>
         </TouchableOpacity>
       </View>
@@ -275,7 +275,7 @@ longitud: ${location.coords.longitude}`,
 
           <View style={styles.lastCheckDetails}>
             <View style={styles.detailItem}>
-              <MapPin stroke="#4C51BF" width={16} height={16} />
+              <Feather name="map-pin" size={18} color="#4C51BF" />
               <Text style={styles.detailText}>
                 Ubicación registrada: Lat {lastCheck.location?.latitude.toFixed(4)}, Lon{" "}
                 {lastCheck.location?.longitude.toFixed(4)}
@@ -283,7 +283,8 @@ longitud: ${location.coords.longitude}`,
             </View>
 
             <View style={styles.detailItem}>
-              <Camera stroke="#4C51BF" width={16} height={16} />
+          
+              <Feather name="clock" size={18} color="#4C51BF" />
               <Text style={styles.detailText}>{lastCheck.photoTaken ? "Foto tomada" : "Sin foto"}</Text>
             </View>
           </View>

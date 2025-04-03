@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Platform, Alert } from "react-native"
-import { Search, Filter, ChevronRight, User, Download } from "react-native-feather"
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Platform, Alert, Linking } from "react-native"
+import { Feather } from "@expo/vector-icons"
 import { format } from "date-fns"
 import { useAuth } from "../../contexts/AuthContext"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
@@ -141,10 +141,7 @@ const EmployerEmployeesScreen = () => {
       } else {
         // Mobile implementation using React Native's Linking API
         try {
-          // Import Linking from react-native
-          const { Linking } = require("react-native")
-
-          // Check if the URL can be opened
+          // Check if the URL can be opened - using the imported Linking
           const canOpen = await Linking.canOpenURL(url)
 
           if (canOpen) {
@@ -303,7 +300,7 @@ const EmployerEmployeesScreen = () => {
         },
       ])
     }
-  }, [user, API_URL, showToast, downloadCSV])
+  }, [user, API_URL, showToast])
 
   return (
     <View style={styles.container}>
@@ -311,7 +308,7 @@ const EmployerEmployeesScreen = () => {
         <Text style={styles.title}>Empleados</Text>
 
         <View style={styles.searchContainer}>
-          <Search stroke="#718096" width={20} height={20} style={styles.searchIcon} />
+             <Feather name="search" size={18}  color="#718096" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
             placeholder="Buscar empleado..."
@@ -319,7 +316,7 @@ const EmployerEmployeesScreen = () => {
             onChangeText={handleSearch}
           />
           <TouchableOpacity style={styles.filterButton} onPress={() => showToast("Filtros no disponibles aún", "info")}>
-            <Filter stroke="#4C51BF" width={20} height={20} />
+            <Feather name="filter" size={18}  color="#4C51BF" />
           </TouchableOpacity>
         </View>
 
@@ -358,7 +355,7 @@ const EmployerEmployeesScreen = () => {
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.employeeCard} onPress={() => handleEmployeePress(item)}>
             <View style={styles.employeeAvatarContainer}>
-              <User stroke="#4C51BF" width={24} height={24} />
+              <Feather name="user" size={18}  color="#4C51BF" />
             </View>
             <View style={styles.employeeInfo}>
               <Text style={styles.employeeName}>{item.nombre}</Text>
@@ -374,7 +371,7 @@ const EmployerEmployeesScreen = () => {
                   {getStatusText(item.status_employee)}
                 </Text>
               </View>
-              <ChevronRight stroke="#A0AEC0" width={20} height={20} />
+              <Feather name="chevron-right" size={18}  color="#A0AEC0" />
             </View>
           </TouchableOpacity>
         )}
@@ -393,7 +390,7 @@ const EmployerEmployeesScreen = () => {
 
       {/* Export all records button */}
       <TouchableOpacity style={styles.exportAllButton} activeOpacity={0.7} onPress={handleExportAll}>
-        <Download stroke="#FFFFFF" width={20} height={20} />
+        <Feather name="download" size={18}  color="#FFFFFF" />
         <Text style={styles.exportAllButtonText}>Exportar todos los registros (CSV)</Text>
       </TouchableOpacity>
     </View>

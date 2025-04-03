@@ -12,7 +12,7 @@ import {
   Alert,
   Platform,
 } from "react-native"
-import { ArrowLeft, Save, Phone, Mail, Briefcase, Lock } from "react-native-feather"
+import { Feather } from "@expo/vector-icons"
 import { useAuth } from "../../contexts/AuthContext"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native"
@@ -155,7 +155,7 @@ const EmployerEditEmployeeScreen = () => {
       {/* Header con botón de regresar */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <ArrowLeft stroke="#4C51BF" width={24} height={24} />
+        <Feather name="arrow-left" size={18}  color="#4C51BF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Editar Empleado</Text>
         <TouchableOpacity
@@ -167,7 +167,7 @@ const EmployerEditEmployeeScreen = () => {
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
             <>
-              <Save stroke="#FFFFFF" width={20} height={20} />
+              <Feather name="save" size={18}  color="#FFFFFF" />
               <Text style={styles.saveButtonText}>Guardar</Text>
             </>
           )}
@@ -183,7 +183,7 @@ const EmployerEditEmployeeScreen = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Email</Text>
             <View style={styles.inputWithIcon}>
-              <Mail stroke="#4C51BF" width={20} height={20} style={styles.inputIcon} />
+              <Feather name="mail" size={18}  color="#4C51BF"  style={styles.inputIcon}/>
               <TextInput
                 style={styles.input}
                 value={email}
@@ -199,7 +199,7 @@ const EmployerEditEmployeeScreen = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Número de teléfono</Text>
             <View style={styles.inputWithIcon}>
-              <Phone stroke="#4C51BF" width={20} height={20} style={styles.inputIcon} />
+              <Feather name="phone" size={18}  color="#4C51BF"  style={styles.inputIcon}/>
               <TextInput
                 style={styles.input}
                 value={phone}
@@ -214,7 +214,7 @@ const EmployerEditEmployeeScreen = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Cargo</Text>
             <View style={styles.inputWithIcon}>
-              <Briefcase stroke="#4C51BF" width={20} height={20} style={styles.inputIcon} />
+              <Feather name="briefcase" size={18}  color="#4C51BF"  style={styles.inputIcon}/>
               <TextInput
                 style={styles.input}
                 value={position}
@@ -228,7 +228,7 @@ const EmployerEditEmployeeScreen = () => {
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>Departamento</Text>
             <View style={styles.inputWithIcon}>
-              <Briefcase stroke="#4C51BF" width={20} height={20} style={styles.inputIcon} />
+              <Feather name="briefcase" size={18}  color="#4C51BF"  style={styles.inputIcon}/>
               <TextInput
                 style={styles.input}
                 value={department}
@@ -252,7 +252,7 @@ const EmployerEditEmployeeScreen = () => {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Nueva contraseña</Text>
                 <View style={styles.inputWithIcon}>
-                  <Lock stroke="#4C51BF" width={20} height={20} style={styles.inputIcon} />
+                  <Feather name="lock" size={18}  color="#4C51BF"  style={styles.inputIcon}/>
                   <TextInput
                     style={styles.input}
                     value={newPassword}
@@ -267,7 +267,7 @@ const EmployerEditEmployeeScreen = () => {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Confirmar contraseña</Text>
                 <View style={styles.inputWithIcon}>
-                  <Lock stroke="#4C51BF" width={20} height={20} style={styles.inputIcon} />
+                  <Feather name="lock" size={18}  color="#4C51BF"  style={styles.inputIcon}/>
                   <TextInput
                     style={styles.input}
                     value={confirmPassword}

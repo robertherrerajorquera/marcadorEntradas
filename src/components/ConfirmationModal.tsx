@@ -3,7 +3,8 @@
 import type React from "react"
 import { useEffect, useState } from "react"
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from "react-native"
-import { AlertCircle, Clock } from "react-native-feather"
+import { Feather } from "@expo/vector-icons"
+
 
 interface ConfirmationModalProps {
   visible: boolean
@@ -65,7 +66,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <AlertCircle stroke="#4C51BF" width={24} height={24} />
+            <Feather name="alert-circle" size={18}  color="#4C51BF" />
             <Text style={styles.modalTitle}>{title}</Text>
           </View>
 
@@ -74,7 +75,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <View style={styles.progressContainer}>
             <View style={[styles.progressBar, { width: `${progress}%` }]} />
             <View style={styles.timeContainer}>
-              <Clock stroke="#718096" width={16} height={16} />
+              <Feather name="clock" size={18}  color="#718096" />
               <Text style={styles.timeText}>{timeLeft} segundos</Text>
             </View>
           </View>

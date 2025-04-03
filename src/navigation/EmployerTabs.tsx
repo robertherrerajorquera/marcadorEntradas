@@ -1,7 +1,7 @@
 "use client"
 
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
-import { Home, Users, User } from "react-native-feather"
+import { Feather } from "@expo/vector-icons"
 import EmployerHomeScreen from "../screens/employer/EmployerHomeScreen"
 import EmployerEmployeesScreen from "../screens/employer/EmployerEmployeesScreen"
 import EmployeeDetailScreen from "../screens/employer/EmployeeDetailScreen"
@@ -61,7 +61,7 @@ const EmployerTabs = () => {
         component={EmployerHomeScreen}
         options={{
           tabBarLabel: "Inicio",
-          tabBarIcon: ({ color, size }) => <Home stroke={color} width={size} height={size} />,
+          tabBarIcon: ({ color, size }) =>  <Feather name="home" size={size}  color={color} />,
         }}
       />
       <Tab.Screen
@@ -69,7 +69,7 @@ const EmployerTabs = () => {
         component={EmployeeStackScreen}
         options={{
           tabBarLabel: "Empleados",
-          tabBarIcon: ({ color, size }) => <Users stroke={color} width={size} height={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="users" size={size}   color={color} />,
         }}
       />
       <Tab.Screen
@@ -77,7 +77,7 @@ const EmployerTabs = () => {
         component={ProfileStackScreen}
         options={{
           tabBarLabel: "Perfil",
-          tabBarIcon: ({ color, size }) => <User stroke={color} width={size} height={size} />,
+          tabBarIcon: ({ color, size }) => <Feather name="user" size={size}   color={color} />,
         }}
       />
     </Tab.Navigator>

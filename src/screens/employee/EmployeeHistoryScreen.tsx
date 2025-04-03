@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Platform } from "react-native"
-import { Calendar, Clock, MapPin, ChevronDown, ChevronUp, Download, AlertTriangle } from "react-native-feather"
+import { Feather } from "@expo/vector-icons"
 import { useAuth } from "../../contexts/AuthContext"
 import { useSimpleToast } from "../../contexts/SimpleToastContext"
 import { format, parseISO, isToday, isYesterday, startOfMonth, endOfMonth } from "date-fns"
@@ -200,14 +200,14 @@ const EmployeeHistoryScreen = () => {
     return (
       <TouchableOpacity style={styles.dateHeader} onPress={() => toggleExpanded(fecha)}>
         <View style={styles.dateHeaderLeft}>
-          <Calendar stroke="#4C51BF" width={20} height={20} />
+        <Feather name="calendar" size={24} color="#4C51BF" />
           <Text style={styles.dateHeaderText}>{formatearFecha(fecha)}</Text>
         </View>
 
         {isExpanded ? (
-          <ChevronUp stroke="#718096" width={20} height={20} />
+           <Feather name="chevron-up" size={24} color="#4C51BF" />
         ) : (
-          <ChevronDown stroke="#718096" width={20} height={20} />
+          <Feather name="chevron-down" size={24} color="#4C51BF" />
         )}
       </TouchableOpacity>
     )
@@ -219,7 +219,7 @@ const EmployeeHistoryScreen = () => {
       <View style={styles.marcajeItem}>
         <View style={styles.marcajeHeader}>
           <View style={styles.marcajeTypeContainer}>
-            <Clock stroke="#4C51BF" width={16} height={16} />
+          <Feather name="clock" size={18} color="#4C51BF" />
             <Text style={styles.marcajeType}>{formatTipoMarcacion(marcaje.tipo)}</Text>
           </View>
           <Text style={styles.marcajeTime}>{marcaje.hora.substring(0, 5)}</Text>
@@ -238,7 +238,7 @@ const EmployeeHistoryScreen = () => {
               }
             }}
           >
-            <MapPin stroke="#718096" width={14} height={14} />
+            <Feather name="map-pin" size={18} color="#4C51BF" />
             <Text style={styles.locationText}>Ver ubicación</Text>
           </TouchableOpacity>
         )}
@@ -246,7 +246,7 @@ const EmployeeHistoryScreen = () => {
         {/* Mostrar información de modificación si el marcaje fue modificado */}
         {marcaje.modified === 1 && (
           <View style={styles.modifiedContainer}>
-            <AlertTriangle stroke="#ED8936" width={14} height={14} />
+            <Feather name="alert-triangle" size={14} color="#4C51BF" />
             <Text style={styles.modifiedText}>
               Modificado por {marcaje.modified_by_name || "Administrador"}
               {marcaje.modified_at && ` el ${format(new Date(marcaje.modified_at), "dd/MM/yyyy HH:mm")}`}
@@ -284,7 +284,7 @@ const EmployeeHistoryScreen = () => {
 
         <View style={styles.monthSelector}>
           <TouchableOpacity onPress={mesAnterior} style={styles.monthButton}>
-            <ChevronDown stroke="#4C51BF" width={24} height={24} style={{ transform: [{ rotate: "90deg" }] }} />
+          <Feather name="chevron-down" size={24} color="#4C51BF" />
           </TouchableOpacity>
 
           <Text style={styles.monthText}>{format(filtroMes, "MMMM yyyy", { locale: es })}</Text>
@@ -296,16 +296,7 @@ const EmployeeHistoryScreen = () => {
               filtroMes.getMonth() === new Date().getMonth() && filtroMes.getFullYear() === new Date().getFullYear()
             }
           >
-            <ChevronDown
-              stroke={
-                filtroMes.getMonth() === new Date().getMonth() && filtroMes.getFullYear() === new Date().getFullYear()
-                  ? "#A0AEC0"
-                  : "#4C51BF"
-              }
-              width={24}
-              height={24}
-              style={{ transform: [{ rotate: "-90deg" }] }}
-            />
+                <Feather name="chevron-down" size={24} color="#4C51BF"   style={{ transform: [{ rotate: "-90deg" }] }} />
           </TouchableOpacity>
         </View>
       </View>
@@ -319,7 +310,7 @@ const EmployeeHistoryScreen = () => {
         <>
           {marcajesPorFecha.length === 0 ? (
             <View style={styles.emptyContainer}>
-              <Calendar stroke="#A0AEC0" width={48} height={48} />
+              <Feather name="calendar"width={48} height={48} color="#A0AEC0" />
               <Text style={styles.emptyText}>No hay registros para este período</Text>
               <Text style={styles.emptySubtext}>Prueba seleccionando otro mes</Text>
             </View>

@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from "react-native"
-import { ArrowLeft, MapPin, Clock, User, Phone, Mail, Briefcase, Edit, Calendar } from "react-native-feather"
+import { Feather } from "@expo/vector-icons"
 import { useNavigation, useRoute, type RouteProp } from "@react-navigation/native"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
@@ -237,7 +237,7 @@ const EmployeeDetailScreen = () => {
       {/* Header with back button */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <ArrowLeft stroke="#4C51BF" width={24} height={24} />
+           <Feather name="arrow-left" size={18}  color="#4C51BF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Detalles del Empleado</Text>
       </View>
@@ -253,7 +253,7 @@ const EmployeeDetailScreen = () => {
           <View style={styles.employeeInfoCard}>
             <View style={styles.employeeHeader}>
               <View style={styles.avatarContainer}>
-                <User stroke="#FFFFFF" width={40} height={40} />
+                <Feather name="user" size={35}  color="#FFFFFF" />
               </View>
               <View style={styles.employeeNameContainer}>
                 <Text style={styles.employeeName}>{displayEmployee.nombre || displayEmployee.name || ""}</Text>
@@ -270,25 +270,25 @@ const EmployeeDetailScreen = () => {
 
             <View style={styles.infoSection}>
               <View style={styles.infoItem}>
-                <Mail stroke="#4C51BF" width={16} height={16} />
+                <Feather name="mail" size={18}  color="#4C51BF" />
                 <Text style={styles.infoText}>{displayEmployee.email || "Sin email"}</Text>
               </View>
 
               <View style={styles.infoItem}>
-                <Briefcase stroke="#4C51BF" width={16} height={16} />
+                <Feather name="briefcase" size={18}  color="#4C51BF" />
                 <Text style={styles.infoText}>{displayEmployee.department || "Sin departamento"}</Text>
               </View>
 
               {displayEmployee.phone && (
                 <View style={styles.infoItem}>
-                  <Phone stroke="#4C51BF" width={16} height={16} />
+                  <Feather name="phone" size={18}  color="#4C51BF" />
                   <Text style={styles.infoText}>{displayEmployee.phone}</Text>
                 </View>
               )}
 
               {displayEmployee.rut && (
                 <View style={styles.infoItem}>
-                  <User stroke="#4C51BF" width={16} height={16} />
+                  <Feather name="user" size={18}  color="#4C51BF" />
                   <Text style={styles.infoText}>RUT: {displayEmployee.rut}</Text>
                 </View>
               )}
@@ -301,7 +301,7 @@ const EmployeeDetailScreen = () => {
               <Text style={styles.sectionTitle}>Última Ubicación</Text>
               <View style={styles.mapContainer}>
                 <View style={styles.webMapPlaceholder}>
-                  <MapPin stroke="#4C51BF" width={24} height={24} />
+                  <Feather name="map-pin" size={18}  color="#4C51BF" />
                   <Text style={styles.webMapText}>
                     Lat: {lastLocation.latitud.toFixed(6)}, Lon: {lastLocation.longitud.toFixed(6)}
                   </Text>
@@ -321,7 +321,7 @@ const EmployeeDetailScreen = () => {
             <View style={styles.historyHeader}>
               <Text style={styles.sectionTitle}>Marcajes</Text>
               <View style={styles.dateContainer}>
-                <Calendar stroke="#718096" width={14} height={14} />
+                <Feather name="calendar"  size={18}  color="#718096" />
                 <Text style={styles.dateText}>{format(new Date(), "dd 'de' MMMM", { locale: es })}</Text>
               </View>
             </View>
@@ -338,7 +338,7 @@ const EmployeeDetailScreen = () => {
                 <View key={marcacion.id} style={styles.marcacionItem}>
                   <View style={styles.marcacionHeader}>
                     <View style={styles.marcacionTypeContainer}>
-                      <Clock stroke="#4C51BF" width={16} height={16} />
+                      <Feather name="clock" size={18}  color="#4C51BF" />
                       <Text style={styles.marcacionType}>{formatTipoMarcacion(marcacion.tipo)}</Text>
                     </View>
                     <Text style={styles.marcacionTime}>{format(new Date(marcacion.timestamp), "HH:mm")}</Text>
@@ -349,7 +349,7 @@ const EmployeeDetailScreen = () => {
                       style={styles.locationContainer}
                       onPress={() => openLocationInMap(marcacion.latitud, marcacion.longitud)}
                     >
-                      <MapPin stroke="#718096" width={14} height={14} />
+                      <Feather name="map-pin"  color="#718096" />
                       <Text style={styles.locationText}>
                         Lat: {Number(marcacion.latitud).toFixed(6)}, Lon: {Number(marcacion.longitud).toFixed(6)}
                       </Text>
@@ -377,7 +377,7 @@ const EmployeeDetailScreen = () => {
                 }
               }}
             >
-              <Phone stroke="#FFFFFF" width={20} height={20} />
+              <Feather name="phone" size={18}  color="#ffffff" />
               <Text style={styles.actionButtonText}>Llamar</Text>
             </TouchableOpacity>
 
@@ -392,7 +392,7 @@ const EmployeeDetailScreen = () => {
                 }
               }}
             >
-              <Mail stroke="#FFFFFF" width={20} height={20} />
+              <Feather name="mail" size={18}  color="#ffffff" />
               <Text style={styles.actionButtonText}>Email</Text>
             </TouchableOpacity>
 
@@ -400,7 +400,7 @@ const EmployeeDetailScreen = () => {
               style={[styles.actionButton, { backgroundColor: "#4C51BF" }]}
               onPress={handleEditEmployee}
             >
-              <Edit stroke="#FFFFFF" width={20} height={20} />
+              <Feather name="edit" size={18}  color="#ffffff" />
               <Text style={styles.actionButtonText}>Editar</Text>
             </TouchableOpacity>
           </View>
